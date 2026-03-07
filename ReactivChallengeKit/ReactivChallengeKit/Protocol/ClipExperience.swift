@@ -109,6 +109,14 @@ extension JourneyTouchpoint {
         notificationHint: "Use short-lifetime offers to capture afterglow intent.",
         sortOrder: 41
     )
+    static let scanify = JourneyTouchpoint(
+        id: "scanify",
+        title: "Scanify",
+        icon: "barcode.viewfinder",
+        context: "In-store barcode scan for product details, try-on, and checkout.",
+        notificationHint: "Use the 8h window for follow-up offers.",
+        sortOrder: 32
+    )
 }
 
 enum InvocationSource: String, CaseIterable, Identifiable {

@@ -42,7 +42,7 @@ if [ -d "$SUBMISSIONS_DIR" ]; then
             if [ -n "$swift_file" ]; then
                 SOURCE_FILES+=("$swift_file")
             fi
-        done < <(find "$team_dir" -type f -name "*.swift" 2>/dev/null || true)
+        done < <(find "$team_dir" -type f -name "*.swift" ! -path "*/components/*" 2>/dev/null || true)
     done
 fi
 
