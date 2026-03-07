@@ -319,6 +319,12 @@ enum ScanifyMockData {
 
     static let allProducts: [ScannedProduct] = Array(products.values)
 
+    /// Products valid for a given store (by store's primary category). Used for company-specific clips.
+    static func products(for storeId: String) -> [ScannedProduct] {
+        let category = StoreBranding.forStoreId(storeId).category
+        return allProducts.filter { $0.category == category }
+    }
+
     private static let products: [String: ScannedProduct] = [
         // Word-based barcode keys (for printed demo barcodes)
         "Sephora": cosmeticsProduct,

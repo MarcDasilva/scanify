@@ -33,19 +33,10 @@ struct ScanifyElectronicsView: View {
                 }
                 .padding(.top, 8)
 
-                // Compatibility badges
                 compatibilitySection
-
-                // Specs
                 specsSection
-
-                // Warranty
                 warrantySection
-
-                // Compatible accessories
                 accessoriesSection
-
-                // What's in the box
                 boxSection
             }
             .padding(.horizontal, 20)
@@ -55,8 +46,6 @@ struct ScanifyElectronicsView: View {
         .navigationTitle("Product Intelligence")
         .navigationBarTitleDisplayMode(.inline)
     }
-
-    // MARK: - Compatibility
 
     private var compatibilitySection: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -76,8 +65,6 @@ struct ScanifyElectronicsView: View {
             }
         }
     }
-
-    // MARK: - Specs
 
     private var specsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -117,8 +104,6 @@ struct ScanifyElectronicsView: View {
         }
     }
 
-    // MARK: - Warranty
-
     private var warrantySection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Button {
@@ -144,7 +129,6 @@ struct ScanifyElectronicsView: View {
 
             if showWarrantyDetails {
                 VStack(spacing: 10) {
-                    // Covers
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Covers")
                             .font(.system(size: 12, weight: .semibold))
@@ -164,7 +148,6 @@ struct ScanifyElectronicsView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: 12))
 
-                    // Does not cover
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Does Not Cover")
                             .font(.system(size: 12, weight: .semibold))
@@ -184,7 +167,6 @@ struct ScanifyElectronicsView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: 12))
 
-                    // Extended warranty upsell
                     if let extPrice = data.warranty.extendedPrice,
                        let extMonths = data.warranty.extendedMonths {
                         HStack {
@@ -206,7 +188,6 @@ struct ScanifyElectronicsView: View {
                         .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.blue.opacity(0.2), lineWidth: 1))
                     }
 
-                    // Register warranty
                     if warrantyRegistered {
                         HStack(spacing: 8) {
                             Image(systemName: "checkmark.circle.fill")
@@ -249,8 +230,6 @@ struct ScanifyElectronicsView: View {
         }
     }
 
-    // MARK: - Accessories
-
     private var accessoriesSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Compatible Accessories — In Stock")
@@ -289,8 +268,6 @@ struct ScanifyElectronicsView: View {
             }
         }
     }
-
-    // MARK: - Box Contents
 
     private var boxSection: some View {
         VStack(alignment: .leading, spacing: 8) {
