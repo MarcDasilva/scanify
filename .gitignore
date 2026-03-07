@@ -53,6 +53,10 @@ playground.xcworkspace
 *.mobileprovision
 *.provisionprofile
 
+# Generated submission registry (rebuilt by scripts/generate-registry.sh)
+ReactivChallengeKit/ReactivChallengeKit/SubmissionRegistry.swift
+ReactivChallengeKit/ReactivChallengeKit/GeneratedSubmissions.swift
+
 # Secrets
 *.env
 .env.*
