@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Shared checkout and share UI used by all Scanify company clips (single definition to avoid duplicate types when concatenating).
 struct ScanifyCheckoutView: View {
     let product: ScannedProduct
     let variant: String
@@ -14,7 +15,6 @@ struct ScanifyCheckoutView: View {
             VStack(spacing: 24) {
                 Spacer()
 
-                // Product summary
                 VStack(spacing: 12) {
                     Image(systemName: product.category.icon)
                         .font(.system(size: 40))
@@ -36,7 +36,6 @@ struct ScanifyCheckoutView: View {
                         .glassEffect(.regular.interactive(), in: .capsule)
                 }
 
-                // Order details
                 VStack(spacing: 6) {
                     orderRow(label: "Subtotal", value: String(format: "$%.2f", product.price))
                     orderRow(label: "Shipping", value: "Free")
@@ -60,7 +59,6 @@ struct ScanifyCheckoutView: View {
                 .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: 18))
                 .padding(.horizontal, 20)
 
-                // Delivery estimate
                 HStack(spacing: 8) {
                     Image(systemName: "shippingbox.fill")
                         .foregroundStyle(.blue)
@@ -71,7 +69,6 @@ struct ScanifyCheckoutView: View {
 
                 Spacer()
 
-                // Apple Pay button
                 if processing {
                     ProgressView()
                         .padding(.bottom, 32)
@@ -127,4 +124,14 @@ struct ScanifyCheckoutView: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 6)
     }
+}
+
+struct ScanifyShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
