@@ -38,7 +38,7 @@ We didn't build one App Clip for one store. We built a **universal barcode inter
 
 **How is the Clip invoked?** (check all that apply)
 - [x] QR Code (printed on physical surface)
-- [x] NFC Tag (embedded in object — wristband, poster, etc.)
+- [x] NFC Tag (embedded in object , wristband, poster, etc.)
 - [ ] iMessage / SMS Link
 - [ ] Safari Smart App Banner
 - [x] Apple Maps (location-based)
@@ -54,7 +54,7 @@ We didn't build one App Clip for one store. We built a **universal barcode inter
 
 This is honestly the most underrated part of this project. Every barcode scan is an intent signal. Not a vague "they visited the website" signal. A "they physically picked up this specific product in this specific store" signal. That's the strongest purchase intent data retail has ever had, and it's been completely wasted until now.
 
-So the 8-hour window becomes three touches: at +15 minutes (while they're still in the store) we surface something immediately useful like an allergen report or a stock update. At +2 hours we suggest a cross-sell or alternative based on what they scanned. At +8 hours, right before the window closes, we send a re-engagement nudge that references the exact product. "The Sony WH-1000XM5 you looked at is $15 less online." Not "hey come back and shop!" — that's what everyone else does and everyone ignores it.
+So the 8-hour window becomes three touches: at +15 minutes (while they're still in the store) we surface something immediately useful like an allergen report or a stock update. At +2 hours we suggest a cross-sell or alternative based on what they scanned. At +8 hours, right before the window closes, we send a re-engagement nudge that references the exact product. "The Sony WH-1000XM5 you looked at is $15 less online." Not "hey come back and shop!", that's what everyone else does and everyone ignores it.
 
 Industry average push conversion is 3-5%. We think we can hit 8-12% because these aren't spray-and-pray notifications. They're based on someone physically holding the product. That's a fundamentally different intent level.
 
@@ -68,7 +68,7 @@ Right now, Reactiv Clips are URL-invoked. The URL determines the experience. Tha
 
 We're proposing a **Barcode Routing Layer**: a post-invocation routing system where the URL gets you into the Clip, and the barcode determines what you see inside it. One URL per store, infinite product experiences.
 
-The implementation on Reactiv's side would be a dashboard where merchants map barcode prefixes to experience templates (e.g., "all barcodes starting with `001600` route to the Nutrition & Allergen template"). Product data auto-pulls from their Shopify catalog via the existing Reactiv-Shopify integration. We built the entire client-side routing in our prototype — the `(storeId, barcode) -> experience` pure function that powers all six stores. What's missing is the merchant-facing dashboard, and that's a natural extension of what Reactiv already has.
+The implementation on Reactiv's side would be a dashboard where merchants map barcode prefixes to experience templates (e.g., "all barcodes starting with `001600` route to the Nutrition & Allergen template"). Product data auto-pulls from their Shopify catalog via the existing Reactiv-Shopify integration. We built the entire client-side routing in our prototype,the `(storeId, barcode) -> experience` pure function that powers all six stores. What's missing is the merchant-facing dashboard, and that's a natural extension of what Reactiv already has.
 
 Why this matters for Reactiv's business: it moves them from "merchants who want a mobile app" to "any retailer with products on shelves." That's not an incremental TAM expansion. That's a categorically different market.
 
@@ -76,7 +76,7 @@ Why this matters for Reactiv's business: it moves them from "merchants who want 
 
 ### 4. Prototype Description
 
-Scanify is **one App Clip** — one scanner, one router, one architecture. To prove that a generalized barcode interaction platform actually works, we built six completely different experiences across six retail verticals. Each one has a fundamentally different information need when you scan a barcode, and each one pushes a different technical capability. If the same Clip handles all six, it can handle anything.
+Scanify is **one App Clip**,one scanner, one router, one architecture. To prove that a generalized barcode interaction platform actually works, we built six completely different experiences across six retail verticals. Each one has a fundamentally different information need when you scan a barcode, and each one pushes a different technical capability. If the same Clip handles all six, it can handle anything.
 
 **The Platform (shared across all experiences):**
 
@@ -86,9 +86,9 @@ Scanify is **one App Clip** — one scanner, one router, one architecture. To pr
 - Adding a new store means writing the view, conforming to `ClipExperience`, and registering it. Scanner, routing, branding, notifications all work automatically.
 
 
-The point isn't that we built six apps. The point is that we built **one platform** and then showed it can produce an allergen scanner, an AR try-on, a drug interaction checker, a 3D product preview, a full e-commerce flow, and a product intelligence sheet — all from the same scanner, the same router, the same `ClipExperience` protocol. That's what makes this a platform and not a feature.
+The point isn't that we built six apps. The point is that we built **one platform** and then showed it can produce an allergen scanner, an AR try-on, a drug interaction checker, a 3D product preview, a full e-commerce flow, and a product intelligence sheet,all from the same scanner, the same router, the same `ClipExperience` protocol. That's what makes this a platform and not a feature.
 
-All screens and flows are functional. Zero external dependencies — no SPM, no CocoaPods, no nothing.
+All screens and flows are functional. Zero external dependencies,no SPM, no CocoaPods, no nothing.
 
 ---
 
@@ -96,9 +96,9 @@ All screens and flows are functional. Zero external dependencies — no SPM, no 
 
 Here's what we think happens if this ships:
 
-**In-store (primary channel):** Shoppers who physically pick up a product are already 70%+ of the way to buying it. That's not our number, that's basic retail psychology — tactile engagement correlates directly with purchase intent. Scanify catches them at the exact peak of that intent and removes every remaining friction point. No app download, no account creation, no line to wait in, no employee to track down. Scan, get info, tap Buy, done. We think this converts at meaningfully higher rates than any existing in-store digital touchpoint because we're not asking the customer to do anything new. They're already holding the product. We just gave them a reason to scan what's already on it.
+**In-store (primary channel):** Shoppers who physically pick up a product are already 70%+ of the way to buying it. That's not our number, that's basic retail psychology,tactile engagement correlates directly with purchase intent. Scanify catches them at the exact peak of that intent and removes every remaining friction point. No app download, no account creation, no line to wait in, no employee to track down. Scan, get info, tap Buy, done. We think this converts at meaningfully higher rates than any existing in-store digital touchpoint because we're not asking the customer to do anything new. They're already holding the product. We just gave them a reason to scan what's already on it.
 
-**Online recovery (secondary channel):** The 8-hour push window turns abandoned in-store interest into online conversions. This is the part that doesn't exist at all in traditional retail. Right now, when a customer walks out without buying, the relationship is over. There is literally zero re-engagement path. Scanify creates one, and it's based on the strongest possible intent signal — they physically held the product. We estimate 8-12% push notification conversion (vs. 3-5% industry average) because these notifications reference specific products, not generic retargeting.
+**Online recovery (secondary channel):** The 8-hour push window turns abandoned in-store interest into online conversions. This is the part that doesn't exist at all in traditional retail. Right now, when a customer walks out without buying, the relationship is over. There is literally zero re-engagement path. Scanify creates one, and it's based on the strongest possible intent signal,they physically held the product. We estimate 8-12% push notification conversion (vs. 3-5% industry average) because these notifications reference specific products, not generic retargeting.
 
 **For Reactiv specifically:** The Barcode Routing Layer expands Reactiv's addressable market from "merchants who want a mobile app" to "any retailer with products on shelves." That's... basically everyone. A corner store with 500 products and zero interest in building an app could still use Scanify through the Reactiv dashboard. Per-scan pricing or monthly SaaS per merchant. Each scan is a measurable, attributable event, which means the ROI story practically writes itself.
 
@@ -106,7 +106,7 @@ Here's what we think happens if this ships:
 
 ---
 
-Side note: when we talked to the Reactiv team during the hackathon and heard you guys are developing something for Indigo that does exactly this — scan a book's barcode and surface a quick analysis or App Clip experience tied to it — it made us more confident in our idea. We'd been building Scanify in parallel without knowing that, and hearing that the barcode-as-entry-point idea independently aligned with where Reactiv is already heading was genuinely validating. Thanks!
+Side note: when we talked to the Reactiv team during the hackathon and heard you guys are developing something for Indigo that does exactly this,scan a book's barcode and surface a quick analysis or App Clip experience tied to it,it made us more confident in our idea. We'd been building Scanify in parallel without knowing that, and hearing that the barcode-as-entry-point idea independently aligned with where Reactiv is already heading was genuinely validating. Thanks!
 
 ### Demo Video
 
