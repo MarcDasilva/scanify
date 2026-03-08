@@ -10,15 +10,18 @@ import SwiftUI
 struct ConstraintBanner: View {
     var body: some View {
         HStack(spacing: 10) {
-            Image(systemName: "appclip")
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(.blue)
+            Image("nike_swoosh")
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .foregroundStyle(.black)
+                .frame(width: 36, height: 14)
 
             VStack(alignment: .leading, spacing: 1) {
-                Text("App Clip Preview")
+                Text("Nike App")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.primary)
-                Text("Get the full app experience")
+                Text("Get the full Nike app experience")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
             }
@@ -27,10 +30,11 @@ struct ConstraintBanner: View {
 
             Text("GET")
                 .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(.blue)
+                .foregroundStyle(.black)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 6)
-                .glassEffect(.regular.interactive(), in: .capsule)
+                .background(Color.black.opacity(0.08), in: Capsule())
+                .overlay(Capsule().stroke(Color.black.opacity(0.18), lineWidth: 1))
         }
         .padding(14)
         .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: 20))

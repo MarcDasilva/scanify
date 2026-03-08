@@ -737,9 +737,12 @@ private struct NikeSplashView: View {
         Color.black
             .ignoresSafeArea()
             .overlay {
-                NikeSwooshShape()
-                    .fill(Color.white)
-                    .frame(width: 120, height: 44)
+                Image("nike_swoosh")
+                    .renderingMode(.template)
+                    .resizable()
+                    .scaledToFit()
+                    .foregroundStyle(.white)
+                    .frame(width: 130, height: 48)
                     .scaleEffect(scale)
                     .opacity(opacity)
             }
