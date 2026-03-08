@@ -926,10 +926,13 @@ private struct NikeScannerOverlay: View {
 
             // Top: centered Nike logo
             VStack(spacing: 0) {
-                VStack(spacing: 8) {
-                    NikeSwooshShape()
-                        .fill(Color.white)
-                        .frame(width: 96, height: 35)
+                VStack(spacing: 6) {
+                    Image("nike_swoosh")
+                        .renderingMode(.template)
+                        .resizable()
+                        .scaledToFit()
+                        .foregroundStyle(.white)
+                        .frame(width: 110, height: 40)
                     Text("NIKE")
                         .font(.system(size: 38, weight: .black))
                         .tracking(4)
