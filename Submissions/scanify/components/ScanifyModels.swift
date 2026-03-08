@@ -55,6 +55,7 @@ struct ScannedProduct: Identifiable {
     let price: Double
     let currency: String
     let categoryData: CategoryData
+    var imageName: String? = nil
 }
 
 // MARK: - Category Data
@@ -126,6 +127,7 @@ struct AlternativeProduct {
     let name: String
     let reason: String
     let aisle: String
+    var imageName: String? = nil
 }
 
 enum Allergen: String, CaseIterable, Identifiable {
@@ -394,9 +396,11 @@ enum ScanifyMockData {
             alternative: AlternativeProduct(
                 name: "Enjoy Life Soft Baked Bars (Nut-Free, Gluten-Free)",
                 reason: "Free from tree nuts & gluten",
-                aisle: "Aisle 7"
+                aisle: "Aisle 7",
+                imageName: "walmart_granola_alt"
             )
-        ))
+        )),
+        imageName: "walmart_granola_bar"
     )
 
     private static let pharmacyProduct = ScannedProduct(
@@ -464,6 +468,64 @@ enum ScanifyMockData {
         ))
     )
 
+    // "Also viewed" products for Best Buy
+    static let xm6Product = ScannedProduct(
+        barcode: "BB-XM6",
+        name: "WH-1000XM6 Headphones",
+        brand: "Sony",
+        category: .electronics,
+        price: 549.99,
+        currency: "CAD",
+        categoryData: .electronics(ElectronicsData(
+            specCategories: [
+                SpecCategory(name: "Audio", icon: "waveform", specs: [
+                    SpecItem(key: "Driver", value: "32mm Carbon Fiber"),
+                    SpecItem(key: "Frequency", value: "4Hz - 40kHz"),
+                    SpecItem(key: "ANC", value: "Auto NC Optimizer 2.0"),
+                    SpecItem(key: "Codec", value: "LDAC, AAC, LC3"),
+                ]),
+                SpecCategory(name: "Battery", icon: "battery.100", specs: [
+                    SpecItem(key: "Playback", value: "40 hours (ANC on)"),
+                    SpecItem(key: "Charge Time", value: "3 hours"),
+                    SpecItem(key: "Quick Charge", value: "3 min = 6 hours"),
+                ]),
+            ],
+            warranty: WarrantyInfo(months: 12, type: "Manufacturer Limited", covers: ["Defects in materials", "Mechanical failure"], excludes: ["Accidental damage", "Water damage"], extendedPrice: 59.99, extendedMonths: 36),
+            compatibleAccessories: [],
+            compatibleWith: ["iPhone 16", "iPad Pro", "MacBook Air", "Android devices", "PS5"],
+            boxContents: ["WH-1000XM6 Headphones", "USB-C cable", "3.5mm cable", "Carrying case"]
+        )),
+        imageName: "bestbuy_xm6"
+    )
+
+    static let airpodsMaxProduct = ScannedProduct(
+        barcode: "BB-APM",
+        name: "AirPods Max (USB-C)",
+        brand: "Apple",
+        category: .electronics,
+        price: 779.00,
+        currency: "CAD",
+        categoryData: .electronics(ElectronicsData(
+            specCategories: [
+                SpecCategory(name: "Audio", icon: "waveform", specs: [
+                    SpecItem(key: "Driver", value: "40mm Apple"),
+                    SpecItem(key: "Chip", value: "H2"),
+                    SpecItem(key: "ANC", value: "Active Noise Cancellation"),
+                    SpecItem(key: "Spatial", value: "Personalized Spatial Audio"),
+                ]),
+                SpecCategory(name: "Battery", icon: "battery.100", specs: [
+                    SpecItem(key: "Playback", value: "20 hours"),
+                    SpecItem(key: "Charge", value: "USB-C"),
+                ]),
+            ],
+            warranty: WarrantyInfo(months: 12, type: "Apple Limited", covers: ["Defects in materials", "Battery"], excludes: ["Accidental damage"], extendedPrice: 59.00, extendedMonths: 24),
+            compatibleAccessories: [],
+            compatibleWith: ["iPhone 16", "iPad Pro", "MacBook Air", "Apple TV", "Apple Watch"],
+            boxContents: ["AirPods Max", "Smart Case", "USB-C to Lightning cable"]
+        )),
+        imageName: "bestbuy_airpods_max"
+    )
+
     private static let electronicsProduct = ScannedProduct(
         barcode: "Best Buy",
         name: "WH-1000XM5 Headphones",
@@ -510,6 +572,7 @@ enum ScanifyMockData {
             ],
             compatibleWith: ["iPhone 16", "iPad Pro", "MacBook Air", "Android devices", "PS5", "Nintendo Switch"],
             boxContents: ["WH-1000XM5 Headphones", "USB-C charging cable", "3.5mm audio cable", "Carrying case", "Airplane adapter"]
-        ))
+        )),
+        imageName: "bestbuy_xm5"
     )
 }
