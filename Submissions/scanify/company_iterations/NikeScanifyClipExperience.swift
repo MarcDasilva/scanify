@@ -161,70 +161,85 @@ private struct NikeLoadingView: View {
     }
 }
 
-// MARK: - Nike scanner overlay (black/white, Nike branding)
+// MARK: - Nike scanner overlay (full-screen, centered logo, corner brackets)
 
 private struct NikeScannerOverlay: View {
-    @State private var animateScanLine = false
-
     var body: some View {
         ZStack {
-            Color.black.opacity(0.5)
+            // Subtle dark tint over camera
+            Color.black.opacity(0.35)
                 .ignoresSafeArea()
 
-            VStack {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(.clear)
-                        .frame(width: 280, height: 280)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 20)
-                                .stroke(Color.white.opacity(0.9), lineWidth: 2)
-                        )
-                    ScanCorners(color: .white)
-                        .frame(width: 280, height: 280)
-                    RoundedRectangle(cornerRadius: 1)
-                        .fill(
-                            LinearGradient(
-                                colors: [.clear, Color.white, .clear],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .frame(width: 240, height: 2)
-                        .offset(y: animateScanLine ? 120 : -120)
-                        .animation(.easeInOut(duration: 2).repeatForever(autoreverses: true), value: animateScanLine)
-                }
-                Spacer()
-            }
-            .compositingGroup()
-            .blendMode(.destinationOut)
+            // Full-screen corner brackets
+            GeometryReader { geo in
+                let inset: CGFloat = 28
+                let len: CGFloat = 44
+                let thick: CGFloat = 3.5
+                let color = Color.white
 
-            VStack {
-                HStack(spacing: 10) {
+                // Top-left
+                Path { p in
+                    p.move(to: CGPoint(x: inset, y: inset + len))
+                    p.addLine(to: CGPoint(x: inset, y: inset))
+                    p.addLine(to: CGPoint(x: inset + len, y: inset))
+                }
+                .stroke(color, style: StrokeStyle(lineWidth: thick, lineCap: .round, lineJoin: .round))
+
+                // Top-right
+                Path { p in
+                    p.move(to: CGPoint(x: geo.size.width - inset - len, y: inset))
+                    p.addLine(to: CGPoint(x: geo.size.width - inset, y: inset))
+                    p.addLine(to: CGPoint(x: geo.size.width - inset, y: inset + len))
+                }
+                .stroke(color, style: StrokeStyle(lineWidth: thick, lineCap: .round, lineJoin: .round))
+
+                // Bottom-left
+                Path { p in
+                    p.move(to: CGPoint(x: inset, y: geo.size.height - inset - len))
+                    p.addLine(to: CGPoint(x: inset, y: geo.size.height - inset))
+                    p.addLine(to: CGPoint(x: inset + len, y: geo.size.height - inset))
+                }
+                .stroke(color, style: StrokeStyle(lineWidth: thick, lineCap: .round, lineJoin: .round))
+
+                // Bottom-right
+                Path { p in
+                    p.move(to: CGPoint(x: geo.size.width - inset - len, y: geo.size.height - inset))
+                    p.addLine(to: CGPoint(x: geo.size.width - inset, y: geo.size.height - inset))
+                    p.addLine(to: CGPoint(x: geo.size.width - inset, y: geo.size.height - inset - len))
+                }
+                .stroke(color, style: StrokeStyle(lineWidth: thick, lineCap: .round, lineJoin: .round))
+            }
+            .ignoresSafeArea()
+
+            // Crosshair in center
+            Image(systemName: "plus")
+                .font(.system(size: 24, weight: .ultraLight))
+                .foregroundStyle(Color.white.opacity(0.75))
+
+            // Top: centered Nike logo
+            VStack(spacing: 0) {
+                VStack(spacing: 8) {
                     NikeSwooshShape()
                         .fill(Color.white)
-                        .frame(width: 28, height: 10)
+                        .frame(width: 96, height: 35)
                     Text("NIKE")
-                        .font(.system(size: 18, weight: .bold))
-                        .tracking(2)
+                        .font(.system(size: 38, weight: .black))
+                        .tracking(4)
                         .foregroundStyle(.white)
-                    Spacer()
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 12)
-
+                .padding(.top, 64)
                 Spacer()
 
+                // Bottom hint
                 Text("Point at a barcode to scan")
                     .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.95))
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 10)
+                    .foregroundStyle(.white.opacity(0.9))
+                    .padding(.horizontal, 22)
+                    .padding(.vertical, 11)
                     .background(.ultraThinMaterial, in: Capsule())
-                    .padding(.bottom, 40)
+                    .padding(.bottom, 48)
             }
         }
-        .onAppear { animateScanLine = true }
     }
 }
 
