@@ -18,7 +18,7 @@ Your submission is strong when it is:
 Which user moment or touchpoint are you targeting?
 
 - [x] Discovery / first awareness -> the Clip surfaces via Apple Maps when they enter the store
-- [ ] Intent / consideration
+- [x] Intent / consideration  --> scan a product, read specs/allergens/interactions to decide if you want it
 - [x] Purchase / conversion -> Potential Apple Pay checkout after scanning 
 - [x] In-person / on-site interaction -> the entire scan-and-interact flow
 - [x] Post-purchase / re-engagement -> the 8-hour push notification window
@@ -47,12 +47,12 @@ We didn't build one App Clip for one store. We built a **universal barcode inter
 
 **End-to-end user experience** (step by step):
 1. Customer walks into any participating store and the Clip surfaces automatically via Apple Maps location registration. Or they see "Scan any product" signage at the entrance and tap a QR code or NFC tag. Either way, the same Clip opens instantly. No download. No account. No onboarding. The store's location (or URL) determines which branding and experience set loads.
-2. They point their phone's camera at the barcode on any product. Our live `AVCaptureSession` scanner reads it in real time (EAN-13, EAN-8, UPC-E, Code 128). The platform routes `(storeId, barcode)` to the right experience automatically. The customer doesn't know or care that Scanify is a platform. They just see a store-branded interaction that gives them exactly what they need for that product.
+2. They point their phone's camera at the barcode on any product. Our live `AVCaptureSession` scanner reads it in real time. The platform routes `(storeId, barcode)` to the right experience automatically. The customer doesn't know or care that Scanify is a platform. They just see a store-branded interaction that gives them exactly what they need for that product.
 3. They get the info they need in under 30 seconds. If they want to buy, it's one-tap Apple Pay. If they don't, the 8-hour push notification window kicks in with product-specific (not generic) re-engagement based on what they actually scanned.
 
 **How does the 8-hour notification window factor into your strategy?**
 
-This is honestly the part that gets us the most excited. Every barcode scan is an intent signal. Not a vague "they visited the website" signal. A "they physically picked up this specific product in this specific store" signal. That's the strongest purchase intent data retail has ever had, and it's been completely wasted until now.
+This is honestly the most underrated part of this project. Every barcode scan is an intent signal. Not a vague "they visited the website" signal. A "they physically picked up this specific product in this specific store" signal. That's the strongest purchase intent data retail has ever had, and it's been completely wasted until now.
 
 So the 8-hour window becomes three touches: at +15 minutes (while they're still in the store) we surface something immediately useful like an allergen report or a stock update. At +2 hours we suggest a cross-sell or alternative based on what they scanned. At +8 hours, right before the window closes, we send a re-engagement nudge that references the exact product. "The Sony WH-1000XM5 you looked at is $15 less online." Not "hey come back and shop!" — that's what everyone else does and everyone ignores it.
 
@@ -85,16 +85,6 @@ Scanify is **one App Clip** — one scanner, one router, one architecture. To pr
 - A `StoreBranding` system that applies each merchant's full visual identity (colors, logos, loading screens) automatically from the URL.
 - Adding a new store means writing the view, conforming to `ClipExperience`, and registering it. Scanner, routing, branding, notifications all work automatically.
 
-**Six proof-of-concept experiences (proving generalizability):**
-
-| Store | Vertical | What a barcode scan surfaces | Key technical capability |
-|---|---|---|---|
-| **Walmart** | Grocery | Allergen flags, nutrition breakdown, allergen-free alternatives with aisle locations | Data visualization, product matching |
-| **Nike** | Apparel | Full shopping flow — size grid with live stock, color picker, bag, Apple Pay checkout | Complete e-commerce in a Clip |
-| **Sephora** | Beauty | AR lip shade try-on with live front camera | ARKit face tracking + Vision framework fallback |
-| **Best Buy** | Electronics | Warranty breakdown, specs, FAQ, "Customers Also Viewed" | Structured product intelligence |
-| **Shoppers Drug Mart** | Pharmacy | Drug interaction checker with severity grading, generic alternatives | Live safety-critical lookups |
-| **Baskin-Robbins** | Food Service | 3D cake preview with confetti effects, allergen info | SceneKit 3D rendering |
 
 The point isn't that we built six apps. The point is that we built **one platform** and then showed it can produce an allergen scanner, an AR try-on, a drug interaction checker, a 3D product preview, a full e-commerce flow, and a product intelligence sheet — all from the same scanner, the same router, the same `ClipExperience` protocol. That's what makes this a platform and not a feature.
 
@@ -116,11 +106,11 @@ Here's what we think happens if this ships:
 
 ---
 
-Side note: when we talked to the Reactiv team during the hackathon and heard you guys are developing something for Indigo that does exactly this — scan a book's barcode and surface a quick analysis or App Clip experience tied to it — it made us more confident in our idea. We'd been building Scanify in parallel without knowing that, and hearing that the barcode-as-entry-point idea independently aligned with where Reactiv is already heading was genuinely validating. Really enjoyed those conversations along the way. Cheers!
+Side note: when we talked to the Reactiv team during the hackathon and heard you guys are developing something for Indigo that does exactly this — scan a book's barcode and surface a quick analysis or App Clip experience tied to it — it made us more confident in our idea. We'd been building Scanify in parallel without knowing that, and hearing that the barcode-as-entry-point idea independently aligned with where Reactiv is already heading was genuinely validating. Thanks!
 
 ### Demo Video
 
-Link: ___
+Link: https://www.youtube.com/watch?v=l2OojdVe8BU
 
 ### Screenshot(s)
 
