@@ -1387,19 +1387,12 @@ private struct NikeProductPageView: View {
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(.black)
             Spacer()
-            HStack(spacing: 20) {
-                Button { } label: {
-                    Image(systemName: "square.and.arrow.up")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundStyle(.black)
-                }
-                Button { } label: {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 17, weight: .medium))
-                        .foregroundStyle(.black)
-                }
+            ShareLink(item: "\(product.name) — \(product.currency)$\(Int(product.price))\nShop Nike at nike.com") {
+                Image(systemName: "square.and.arrow.up")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(.black)
+                    .frame(width: 44, height: 44)
             }
-            .frame(width: 88, alignment: .trailing)
         }
         .padding(.horizontal, 4)
         .padding(.top, 8)
