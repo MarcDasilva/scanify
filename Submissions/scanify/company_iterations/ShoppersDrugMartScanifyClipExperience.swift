@@ -202,7 +202,15 @@ private struct ShoppersScanifySheet: View {
         NavigationStack {
             Group {
                 if case .pharmacy(let data) = product.categoryData {
-                    ScanifyMedicineView(product: product, data: data, accentColor: storeBranding.accentColor)
+                    ScanifyMedicineView(
+                        product: product,
+                        data: data,
+                        accentColor: storeBranding.accentColor,
+                        shoppersProductPageHeader: (storeBranding, {
+                            checkoutVariant = product.name
+                            showCheckout = true
+                        })
+                    )
                 } else {
                     EmptyView()
                 }
@@ -250,10 +258,13 @@ private struct ShoppersScanifySheet: View {
 
 // MARK: - Shoppers category view (pharmacy: medicine guide)
 
+/// When `onAddToBag` is non-nil, the view shows the Shoppers Drug Mart product page header (banner, logo, image, details, Add to bag).
 struct ScanifyMedicineView: View {
     let product: ScannedProduct
     let data: PharmacyData
     var accentColor: Color = .red
+    /// Shoppers PDP: (branding, onAddToBag). When set, shows wireframe-style header and product image.
+    var shoppersProductPageHeader: (StoreBranding, () -> Void)? = nil
 
     @State private var medicationInput: String = ""
     @State private var interactionResult: InteractionResult?
@@ -264,25 +275,43 @@ struct ScanifyMedicineView: View {
         case warning(DrugInteraction)
     }
 
+    private var showShoppersHeader: Bool { shoppersProductPageHeader != nil }
+    private static let shoppersRed = Color(red: 0.89, green: 0.09, blue: 0.22)   // #E31837
+    private static let shoppersLightBlue = Color(red: 0, green: 0.64, blue: 0.88) // #00A3E0
+    private static let shoppersDarkButton = Color(red: 0.17, green: 0.17, blue: 0.17) // #2C2C2C
+
     var body: some View {
         ScrollView {
-            VStack(spacing: 20) {
-                VStack(spacing: 6) {
-                    Text(product.brand)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                    Text(product.name)
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundStyle(.primary)
-                        .multilineTextAlignment(.center)
-                    Text(String(format: "$%.2f", product.price))
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(.primary)
+            VStack(spacing: 0) {
+                if showShoppersHeader, let (branding, _) = shoppersProductPageHeader {
+                    shoppersBanner
+                    shoppersHeader(branding)
+                    shoppersBreadcrumb
+                    shoppersProductImage
+                    shoppersProductTitle
+                } else {
+                    VStack(spacing: 6) {
+                        Text(product.brand)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                        Text(product.name)
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundStyle(.primary)
+                            .multilineTextAlignment(.center)
+                        Text(String(format: "$%.2f", product.price))
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(.primary)
+                    }
+                    .padding(.top, 8)
+                    .padding(.bottom, 4)
                 }
-                .padding(.top, 8)
 
-                treatsSection
-                doesNotTreatSection
+                if showShoppersHeader {
+                    treatsAndDoesNotTreatSection
+                } else {
+                    treatsSection
+                    doesNotTreatSection
+                }
                 ingredientsSection
                 interactionSection
 
@@ -303,40 +332,198 @@ struct ScanifyMedicineView: View {
                     .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: 12))
                 }
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, showShoppersHeader ? 16 : 20)
             .padding(.bottom, 24)
         }
         .scrollIndicators(.hidden)
-        .navigationTitle("Medicine Guide")
+        .background(showShoppersHeader ? Color(.systemBackground) : nil)
+        .navigationTitle(showShoppersHeader ? "" : "Medicine Guide")
         .navigationBarTitleDisplayMode(.inline)
     }
 
+    // MARK: - Shoppers wireframe header
+
+    private var shoppersBanner: some View {
+        HStack(spacing: 4) {
+            Text("Bonus Redemption Event: Get up to $500 off* when you redeem 350,000 points. That's an extra $150! ")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.white)
+            Text("Learn more")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.white)
+                .underline()
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+        .padding(.horizontal, 12)
+        .background(Self.shoppersRed)
+    }
+
+    private func shoppersHeader(_ branding: StoreBranding) -> some View {
+        HStack(spacing: 12) {
+            Image("shoppersdrugmart", bundle: .main)
+                .resizable()
+                .scaledToFit()
+                .frame(height: 56)
+            Spacer()
+        }
+        .padding(.horizontal, 4)
+        .padding(.vertical, 12)
+        .background(Color(.systemBackground))
+    }
+
+    private var shoppersBreadcrumb: some View {
+        Text("Medicine & Treatments > Pain Relief > Children's Pain & Fever Rel...")
+            .font(.system(size: 11, weight: .regular))
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+            .truncationMode(.tail)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, 8)
+    }
+
+    private var shoppersProductImage: some View {
+        Image("coldandsinus", bundle: .main)
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .frame(maxWidth: .infinity)
+            .frame(height: 220)
+            .padding(.horizontal, 8)
+        .overlay(alignment: .bottomTrailing) {
+            Image(systemName: "plus.magnifyingglass")
+                .font(.system(size: 14))
+                .foregroundStyle(.secondary)
+                .padding(8)
+        }
+    }
+
+    private var shoppersProductTitle: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(product.brand)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.secondary)
+            Text(product.name)
+                .font(.system(size: 17, weight: .bold))
+                .foregroundStyle(.primary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, 12)
+        .padding(.bottom, 16)
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(Color(.systemGray5))
+                .frame(height: 1)
+                .padding(.top, 16)
+        }
+    }
+
+    private var treatsAndDoesNotTreatSection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 6) {
+                        Rectangle()
+                            .fill(Self.shoppersRed)
+                            .frame(width: 4)
+                        Text("What it treats")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(.primary)
+                    }
+                    VStack(spacing: 8) {
+                        ForEach(data.treats, id: \.self) { symptom in
+                            HStack(spacing: 8) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 14))
+                                    .foregroundStyle(Self.shoppersRed)
+                                Text(symptom)
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundStyle(.primary)
+                                    .lineLimit(2)
+                                Spacer(minLength: 0)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                            .background(Color(.systemGray6))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 6) {
+                        Rectangle()
+                            .fill(Color(.systemGray3))
+                            .frame(width: 4)
+                        Text("What it does not treat")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(.primary)
+                    }
+                    VStack(spacing: 8) {
+                        ForEach(data.doesNotTreat, id: \.self) { symptom in
+                            HStack(spacing: 8) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 14))
+                                    .foregroundStyle(.secondary)
+                                Text(symptom)
+                                    .font(.system(size: 13, weight: .medium))
+                                    .strikethrough()
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(2)
+                                Spacer(minLength: 0)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                            .background(Color(.systemGray6))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 16)
+            .padding(.bottom, 20)
+        }
+        .background(Color(.systemBackground))
+    }
+
     private var treatsSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 6) {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
-                Text("What This Treats")
-                    .font(.system(size: 15, weight: .semibold))
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 8) {
+                Rectangle()
+                    .fill(Self.shoppersRed)
+                    .frame(width: 4)
+                Text("What it treats")
+                    .font(.system(size: 17, weight: .bold))
                     .foregroundStyle(.primary)
             }
+            .padding(.horizontal, 16)
+            .padding(.top, 16)
+            .padding(.bottom, 12)
 
-            FlowLayout(spacing: 8) {
+            VStack(spacing: 10) {
                 ForEach(data.treats, id: \.self) { symptom in
-                    HStack(spacing: 4) {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 9, weight: .bold))
+                    HStack(spacing: 12) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 18))
+                            .foregroundStyle(Self.shoppersRed)
                         Text(symptom)
-                            .font(.system(size: 12, weight: .medium))
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundStyle(.primary)
+                        Spacer(minLength: 0)
                     }
-                    .foregroundStyle(.green)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 7)
-                    .background(Color.green.opacity(0.1), in: .capsule)
-                    .overlay(Capsule().stroke(Color.green.opacity(0.3), lineWidth: 1))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 14)
+                    .background(Color(.systemGray6))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
                 }
             }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 20)
         }
+        .background(Color(.systemBackground))
     }
 
     private var doesNotTreatSection: some View {

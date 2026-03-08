@@ -401,7 +401,7 @@ enum ScanifyMockData {
 
     private static let pharmacyProduct = ScannedProduct(
         barcode: "Shoppers",
-        name: "Cold & Sinus — 20 tablets",
+        name: "Cold & Sinus — 10 caplets",
         brand: "Advil",
         category: .pharmacy,
         price: 12.99,
