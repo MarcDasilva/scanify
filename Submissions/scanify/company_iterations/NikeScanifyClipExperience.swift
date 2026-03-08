@@ -596,6 +596,7 @@ private struct NikeProductPageView: View {
     @State private var selectedColor: ColorVariant?
     @State private var showSizeSheet = false
     @State private var heroPage = 0
+    @State private var shipFromStore: (name: String, address: String, distance: String)?
 
     private var apparelData: ApparelData? {
         guard case .apparel(let data) = product.categoryData else { return nil }
@@ -666,7 +667,7 @@ private struct NikeProductPageView: View {
                             Circle()
                                 .fill(item.inStock == 0 ? Color.red : item.stockStatus.color)
                                 .frame(width: 7, height: 7)
-                            Text(item.inStock == 0 ? "Out of stock here — check nearby stores below" : item.inStock <= 3 ? "Only \(item.inStock) left in store" : "\(item.inStock) in stock at this location")
+                            Text(item.inStock == 0 ? "Out of stock at this location — ship from a nearby store" : item.inStock <= 3 ? "Only \(item.inStock) left in store" : "\(item.inStock) in stock at this location")
                                 .font(.system(size: 13, weight: .medium))
                                 .foregroundStyle(item.inStock == 0 ? Color.red : item.inStock <= 3 ? Color.orange : Color(white: 0.35))
                         }
@@ -727,6 +728,20 @@ private struct NikeProductPageView: View {
             )
         }
         .onAppear { setDefaults() }
+        .sheet(item: Binding(
+            get: { shipFromStore.map { NikeStoreShipOption(name: $0.name, address: $0.address, distance: $0.distance) } },
+            set: { shipFromStore = $0.map { ($0.name, $0.address, $0.distance) } }
+        )) { store in
+            NikeShipFromStoreSheet(
+                store: store,
+                product: product,
+                selectedSize: selectedSize ?? "",
+                onShip: {
+                    shipFromStore = nil
+                    addToBag()
+                }
+            )
+        }
         .sheet(isPresented: $showSizeSheet) {
             if let data = apparelData {
                 NikeSizeSheet(
@@ -919,18 +934,11 @@ private struct NikeProductPageView: View {
                 .foregroundStyle(.black)
             VStack(spacing: 0) {
                 ForEach(Array(Self.nearbyStores.enumerated()), id: \.offset) { index, store in
-                    // If out of stock at this store, nearby stores carry it; otherwise nearby stores match
-                    let inStockHere = selectedSize.map { sz in
-                        (data.sizes.first(where: { $0.size == sz })?.inStock ?? 0) > 0
-                    } ?? true
-                    let nearbyAvailable = !inStockHere || inStockHere  // nearby always available when out here; show stock otherwise
-                    let _ = nearbyAvailable  // suppress warning
-                    let statusText: String = {
-                        guard let sz = selectedSize else { return "In stock" }
-                        if !inStockHere { return "Size \(sz) available" }
-                        return "Size \(sz) available"
-                    }()
-                    HStack(spacing: 12) {
+                    let outHere = selectedSize.map { sz in
+                        (data.sizes.first(where: { $0.size == sz })?.inStock ?? 0) == 0
+                    } ?? false
+                    let statusText = selectedSize.map { "Size \($0) available" } ?? "In stock"
+                    let row = HStack(spacing: 12) {
                         Image(systemName: "storefront")
                             .font(.system(size: 14))
                             .foregroundStyle(Color(white: 0.55))
@@ -947,9 +955,26 @@ private struct NikeProductPageView: View {
                         Text(store.distance)
                             .font(.system(size: 13))
                             .foregroundStyle(Color(white: 0.5))
+                        if outHere {
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(Color(white: 0.55))
+                        }
                     }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 12)
+
+                    if outHere {
+                        Button {
+                            shipFromStore = (store.name, store.address, store.distance)
+                        } label: {
+                            row
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        row
+                    }
+
                     if index < Self.nearbyStores.count - 1 {
                         Rectangle().fill(Color.black.opacity(0.07)).frame(height: 0.5).padding(.leading, 50)
                     }
@@ -1249,6 +1274,114 @@ private struct NikeProfileView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 14)
+    }
+}
+
+// MARK: - Ship from store helpers
+
+private struct NikeStoreShipOption: Identifiable {
+    let id = UUID()
+    let name: String
+    let address: String
+    let distance: String
+}
+
+private struct NikeShipFromStoreSheet: View {
+    let store: NikeStoreShipOption
+    let product: ScannedProduct
+    let selectedSize: String
+    let onShip: () -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Handle
+            Capsule()
+                .fill(Color.black.opacity(0.12))
+                .frame(width: 36, height: 4)
+                .padding(.top, 12)
+                .padding(.bottom, 20)
+
+            // Store header
+            HStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color(white: 0.95))
+                        .frame(width: 52, height: 52)
+                    Image(systemName: "storefront.fill")
+                        .font(.system(size: 22))
+                        .foregroundStyle(Color(white: 0.45))
+                }
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(store.name)
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundStyle(.black)
+                    Text(store.address)
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                    Text(store.distance + " away")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(Color.green)
+                }
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 24)
+
+            Divider()
+
+            // Order summary
+            VStack(spacing: 0) {
+                summaryRow(label: "Item", value: product.name)
+                summaryRow(label: "Size", value: selectedSize)
+                summaryRow(label: "Shipping from", value: store.name)
+                summaryRow(label: "Ship to", value: "42 Wellington St W, Toronto ON")
+                summaryRow(label: "Estimated delivery", value: "3–5 business days")
+                summaryRow(label: "Shipping", value: "CA$10.95")
+            }
+            .padding(.vertical, 8)
+
+            Divider()
+
+            Spacer()
+
+            Button {
+                dismiss()
+                onShip()
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "shippingbox.fill")
+                        .font(.system(size: 15))
+                    Text("Ship from \(store.name)")
+                        .font(.system(size: 17, weight: .semibold))
+                }
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(Color.black, in: RoundedRectangle(cornerRadius: 12))
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 20)
+            .padding(.bottom, 36)
+        }
+        .background(Color.white)
+        .presentationDetents([.medium])
+        .presentationDragIndicator(.hidden)
+    }
+
+    private func summaryRow(label: String, value: String) -> some View {
+        HStack {
+            Text(label)
+                .font(.system(size: 14))
+                .foregroundStyle(.secondary)
+            Spacer()
+            Text(value)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(.black)
+                .multilineTextAlignment(.trailing)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 11)
     }
 }
 
