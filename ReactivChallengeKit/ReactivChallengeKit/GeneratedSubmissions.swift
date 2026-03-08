@@ -18,121 +18,222 @@ struct ScanifyCheckoutView: View {
     let onComplete: () -> Void
 
     @State private var processing = false
+    @State private var slideOffset: CGFloat = 50
+    @State private var opacity: Double = 0
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 24) {
-                Spacer()
-
-                VStack(spacing: 12) {
-                    Image(systemName: product.category.icon)
-                        .font(.system(size: 40))
-                        .foregroundStyle(product.category.accentColor)
-                        .frame(width: 72, height: 72)
-                        .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: 20))
-
-                    Text(product.brand)
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                    Text(product.name)
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(.primary)
-                    Text(variant)
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(.blue)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 5)
-                        .glassEffect(.regular.interactive(), in: .capsule)
-                }
-
-                VStack(spacing: 6) {
-                    orderRow(label: "Subtotal", value: String(format: "$%.2f", product.price))
-                    orderRow(label: "Shipping", value: "Free")
-                    orderRow(label: "Tax (est.)", value: String(format: "$%.2f", product.price * 0.13))
-
-                    Divider().padding(.vertical, 4)
-
-                    HStack {
-                        Text("Total")
-                            .font(.system(size: 15, weight: .bold))
+        ZStack {
+            Color(.systemBackground)
+                .ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                // Header
+                HStack {
+                    Button {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                            dismiss()
+                        }
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 17, weight: .semibold))
                             .foregroundStyle(.primary)
-                        Spacer()
-                        Text(String(format: "$%.2f", product.price * 1.13))
-                            .font(.system(size: 15, weight: .bold))
-                            .foregroundStyle(.primary)
+                            .frame(width: 32, height: 32)
                     }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 8)
+                    
+                    Spacer()
+                    
+                    Text("Review Order")
+                        .font(.system(size: 17, weight: .semibold))
+                    
+                    Spacer()
+                    
+                    // Invisible spacer for centering
+                    Color.clear.frame(width: 32, height: 32)
                 }
-                .padding(14)
-                .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: 18))
                 .padding(.horizontal, 20)
+                .padding(.vertical, 16)
+                
+                Divider()
+                
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 32) {
+                        // Product Summary
+                        VStack(spacing: 16) {
+                            Image(systemName: product.category.icon)
+                                .font(.system(size: 64, weight: .light))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: [accentColor.opacity(0.8), accentColor.opacity(0.4)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(height: 100)
+                                .offset(y: slideOffset)
+                                .opacity(opacity)
 
-                HStack(spacing: 8) {
-                    Image(systemName: "shippingbox.fill")
-                        .foregroundStyle(.blue)
-                    Text("Estimated delivery: 2-3 business days")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-
-                if processing {
-                    ProgressView()
-                        .padding(.bottom, 32)
-                } else {
-                    Button {
-                        processing = true
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-                            onComplete()
+                            VStack(spacing: 8) {
+                                Text(product.name)
+                                    .font(.system(size: 22, weight: .bold))
+                                    .foregroundStyle(.primary)
+                                    .multilineTextAlignment(.center)
+                                
+                                Text(product.brand)
+                                    .font(.system(size: 15))
+                                    .foregroundStyle(.secondary)
+                                
+                                Text(variant)
+                                    .font(.system(size: 15, weight: .medium))
+                                    .foregroundStyle(accentColor)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 8)
+                                    .background(
+                                        Capsule()
+                                            .fill(accentColor.opacity(0.1))
+                                    )
+                                    .padding(.top, 4)
+                            }
+                            .offset(y: slideOffset)
+                            .opacity(opacity)
                         }
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "apple.logo")
-                                .font(.system(size: 18))
-                            Text("Pay")
+                        .padding(.top, 24)
+
+                        // Order Summary
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Order Summary")
                                 .font(.system(size: 18, weight: .semibold))
+                                .foregroundStyle(.primary)
+                                .padding(.horizontal, 20)
+                            
+                            VStack(spacing: 0) {
+                                summaryRow(label: "Subtotal", value: String(format: "$%.2f", product.price))
+                                summaryRow(label: "Shipping", value: "Free")
+                                summaryRow(label: "Tax (est.)", value: String(format: "$%.2f", product.price * 0.13))
+                                
+                                Divider()
+                                    .padding(.vertical, 16)
+                                    .padding(.horizontal, 20)
+                                
+                                HStack {
+                                    Text("Total")
+                                        .font(.system(size: 18, weight: .bold))
+                                    Spacer()
+                                    Text(String(format: "$%.2f", product.price * 1.13))
+                                        .font(.system(size: 18, weight: .bold))
+                                }
+                                .padding(.horizontal, 20)
+                            }
+                            .background(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(Color(.secondarySystemGroupedBackground))
+                            )
+                            .padding(.horizontal, 20)
                         }
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
+                        .offset(y: slideOffset)
+                        .opacity(opacity)
+
+                        // Delivery Info
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack(spacing: 10) {
+                                Image(systemName: "shippingbox.fill")
+                                    .font(.system(size: 18))
+                                    .foregroundStyle(accentColor)
+                                
+                                Text("Estimated delivery: 2-3 business days")
+                                    .font(.system(size: 15))
+                                    .foregroundStyle(.secondary)
+                            }
+                            
+                            HStack(spacing: 10) {
+                                Image(systemName: "checkmark.shield.fill")
+                                    .font(.system(size: 18))
+                                    .foregroundStyle(.green)
+                                
+                                Text("30-day return policy")
+                                    .font(.system(size: 15))
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(20)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color(.secondarySystemGroupedBackground))
+                        )
+                        .padding(.horizontal, 20)
+                        .offset(y: slideOffset)
+                        .opacity(opacity)
+                        
+                        Spacer(minLength: 100)
+                    }
+                }
+                
+                // Bottom CTA
+                VStack(spacing: 0) {
+                    Divider()
+                    
+                    if processing {
+                        ProgressView()
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 56)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 16)
+                    } else {
+                        Button {
+                            processing = true
+                            #if !targetEnvironment(simulator)
+                            let generator = UIImpactFeedbackGenerator(style: .heavy)
+                            generator.impactOccurred()
+                            #endif
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                                onComplete()
+                            }
+                        } label: {
+                            HStack(spacing: 10) {
+                                Image(systemName: "apple.logo")
+                                    .font(.system(size: 20, weight: .semibold))
+                                Text("Pay with Apple Pay")
+                                    .font(.system(size: 18, weight: .semibold))
+                            }
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 56)
+                            .background(
+                                RoundedRectangle(cornerRadius: 28)
+                                    .fill(Color.black)
+                            )
+                        }
+                        .padding(.horizontal, 20)
                         .padding(.vertical, 16)
-                        .background(.black, in: RoundedRectangle(cornerRadius: 16))
-                    }
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, 32)
-                }
-            }
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
                     }
                 }
+                .background(
+                    Color(.systemBackground)
+                        .ignoresSafeArea()
+                )
             }
-            .navigationTitle("Checkout")
-            .navigationBarTitleDisplayMode(.inline)
         }
-        .presentationDetents([.large])
-        .presentationDragIndicator(.visible)
+        .onAppear {
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.75).delay(0.1)) {
+                slideOffset = 0
+                opacity = 1
+            }
+        }
     }
 
-    private func orderRow(label: String, value: String) -> some View {
+    private func summaryRow(label: String, value: String) -> some View {
         HStack {
             Text(label)
-                .font(.system(size: 13))
+                .font(.system(size: 15))
                 .foregroundStyle(.secondary)
             Spacer()
             Text(value)
-                .font(.system(size: 13, weight: .medium))
+                .font(.system(size: 15, weight: .medium))
                 .foregroundStyle(.primary)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 6)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
     }
 }
 
@@ -750,25 +851,34 @@ private struct NikeScanifyFlowView: View {
         ZStack {
             if showSuccess {
                 successView
-                    .transition(.scale.combined(with: .opacity))
+                    .transition(.scale(scale: 0.95).combined(with: .opacity))
             } else {
                 cameraScanner
             }
         }
-        .animation(.spring(duration: 0.35), value: showSuccess)
-        .sheet(item: $scannedProduct) { product in
+        .animation(.spring(response: 0.5, dampingFraction: 0.8), value: showSuccess)
+        .fullScreenCover(item: $scannedProduct) { product in
             NikeScanifySheet(
                 product: product,
                 storeBranding: storeBranding,
-                onDismiss: { scannedProduct = nil },
+                onDismiss: { 
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                        scannedProduct = nil 
+                    }
+                },
                 onOrderComplete: {
                     scannedProduct = nil
-                    withAnimation(.spring(duration: 0.4)) { showSuccess = true }
+                    withAnimation(.spring(response: 0.5, dampingFraction: 0.75)) { 
+                        showSuccess = true 
+                    }
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-                        withAnimation { showSuccess = false }
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) { 
+                            showSuccess = false 
+                        }
                     }
                 }
             )
+            .transition(.move(edge: .bottom).combined(with: .opacity))
         }
         .alert("Product Not Found", isPresented: $showProductNotFound) {
             Button("Scan Again", role: .cancel) {}
@@ -958,230 +1068,558 @@ struct ScanifyInventoryView: View {
 
     @State private var selectedSize: String?
     @State private var selectedColor: ColorVariant?
+    @State private var deliveryMethod: DeliveryMethod = .shipping
+    @State private var showingCheckout = false
+    @State private var imageScale: CGFloat = 1.0
+    
+    enum DeliveryMethod {
+        case shipping, pickup
+    }
+    
+    private var selectedSizeData: SizeInventory? {
+        guard let size = selectedSize else { return nil }
+        return data.sizes.first(where: { $0.size == size })
+    }
+    
+    private var canPurchase: Bool {
+        guard let sizeData = selectedSizeData else { return false }
+        return sizeData.stockStatus != .outOfStock
+    }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                productHeader
-                sizeSection
-                if !data.colors.isEmpty { colorSection }
-                detailsSection
-                if let size = selectedSize,
-                   let sizeData = data.sizes.first(where: { $0.size == size }),
-                   sizeData.stockStatus == .outOfStock {
-                    buyOnlineSection(size: size)
+        ZStack {
+            Color(.systemBackground)
+                .ignoresSafeArea()
+            
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 0) {
+                    productHero
+                    productInfo
+                    Spacer(minLength: 100)
                 }
-                nearbySection
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 24)
+            
+            // Sticky bottom CTA
+            VStack {
+                Spacer()
+                bottomActionBar
+            }
         }
-        .scrollIndicators(.hidden)
-        .navigationTitle("Size & Inventory")
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    private var productHeader: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "tshirt.fill")
-                .font(.system(size: 48))
-                .foregroundStyle(accentColor.opacity(0.6))
-                .frame(width: 80, height: 80)
-                .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: 22))
-
-            Text(product.brand)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(.secondary)
-            Text(product.name)
-                .font(.system(size: 22, weight: .bold))
-                .foregroundStyle(.primary)
-            Text(String(format: "$%.2f %@", product.price, product.currency))
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(accentColor)
+    // MARK: - Hero Product Image
+    
+    private var productHero: some View {
+        ZStack {
+            // Nike-style gradient background
+            LinearGradient(
+                colors: [
+                    accentColor.opacity(0.05),
+                    Color(.systemBackground)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 420)
+            
+            VStack(spacing: 0) {
+                // Product image
+                Image(systemName: "tshirt.fill")
+                    .font(.system(size: 140, weight: .light))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [accentColor.opacity(0.8), accentColor.opacity(0.4)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .scaleEffect(imageScale)
+                    .animation(.spring(response: 0.6, dampingFraction: 0.7), value: imageScale)
+                    .onAppear {
+                        withAnimation(.spring(response: 0.8, dampingFraction: 0.6).delay(0.1)) {
+                            imageScale = 1.0
+                        }
+                    }
+                    .padding(.top, 60)
+            }
+            .frame(height: 420)
         }
-        .padding(.top, 8)
+    }
+    
+    // MARK: - Product Info
+    
+    private var productInfo: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            // Title & Price
+            VStack(alignment: .leading, spacing: 8) {
+                Text(product.name)
+                    .font(.system(size: 26, weight: .bold, design: .default))
+                    .foregroundStyle(.primary)
+                
+                Text(product.brand)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(.secondary)
+                
+                Text(String(format: "$%.2f", product.price))
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(.primary)
+                    .padding(.top, 4)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 20)
+            
+            Divider()
+                .padding(.horizontal, 20)
+            
+            // Size Selection
+            sizeSelectionSection
+            
+            // Color Selection
+            if !data.colors.isEmpty {
+                Divider()
+                    .padding(.horizontal, 20)
+                colorSelectionSection
+            }
+            
+            Divider()
+                .padding(.horizontal, 20)
+            
+            // Delivery Options
+            deliveryOptionsSection
+            
+            Divider()
+                .padding(.horizontal, 20)
+            
+            // Product Details
+            productDetailsSection
+            
+            // Nearby Stores (if out of stock)
+            if let sizeData = selectedSizeData, sizeData.stockStatus == .outOfStock {
+                Divider()
+                    .padding(.horizontal, 20)
+                nearbyStoresSection
+            }
+        }
+        .padding(.top, 20)
     }
 
-    private var sizeSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+    // MARK: - Size Selection Section
+    
+    private var sizeSelectionSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Text("Select Size")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: 18, weight: .semibold))
                     .foregroundStyle(.primary)
+                
                 Spacer()
+                
                 Text(data.fit)
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.system(size: 14, weight: .medium))
                     .foregroundStyle(.secondary)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color(.secondarySystemFill))
+                    .clipShape(Capsule())
             }
-
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3), spacing: 10) {
+            
+            // Size grid
+            LazyVGrid(
+                columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 4),
+                spacing: 12
+            ) {
                 ForEach(data.sizes) { sizeItem in
-                    sizeButton(sizeItem)
+                    nikeSizeButton(sizeItem)
                 }
             }
-
-            HStack(spacing: 16) {
-                legendDot(color: .green, label: "In Stock")
-                legendDot(color: .yellow, label: "Low Stock")
-                legendDot(color: .red, label: "Unavailable")
-            }
-            .font(.system(size: 11))
-            .foregroundStyle(.secondary)
         }
+        .padding(.horizontal, 20)
     }
-
-    private func sizeButton(_ item: SizeInventory) -> some View {
+    
+    private func nikeSizeButton(_ item: SizeInventory) -> some View {
         Button {
-            withAnimation(.spring(duration: 0.25)) { selectedSize = item.size }
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                selectedSize = item.size
+            }
+            #if !targetEnvironment(simulator)
+            let generator = UIImpactFeedbackGenerator(style: .light)
+            generator.impactOccurred()
+            #endif
         } label: {
-            VStack(spacing: 4) {
+            VStack(spacing: 8) {
                 Text(item.size)
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(item.stockStatus == .outOfStock ? .secondary : .primary)
-
-                HStack(spacing: 4) {
+                    .foregroundStyle(
+                        item.stockStatus == .outOfStock
+                            ? Color(.tertiaryLabel)
+                            : (selectedSize == item.size ? Color.white : Color.primary)
+                    )
+                
+                // Stock indicator dot
+                if item.stockStatus != .outOfStock {
                     Circle()
-                        .fill(item.stockStatus.color)
+                        .fill(item.stockStatus == .lowStock ? Color.orange : Color.green)
                         .frame(width: 6, height: 6)
-                    Text(item.inStock == 0 ? "Out" : "\(item.inStock) left")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(.secondary)
+                        .opacity(selectedSize == item.size ? 1 : 0.6)
                 }
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    .stroke(selectedSize == item.size ? item.stockStatus.color : .clear, lineWidth: 2)
+            .frame(height: 64)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(
+                        selectedSize == item.size
+                            ? Color.primary
+                            : (item.stockStatus == .outOfStock
+                                ? Color(.tertiarySystemFill)
+                                : Color(.secondarySystemFill))
+                    )
             )
-            .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: 14))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .strokeBorder(
+                        selectedSize == item.size ? Color.primary : Color.clear,
+                        lineWidth: 2
+                    )
+            )
+            .opacity(item.stockStatus == .outOfStock ? 0.4 : 1.0)
         }
+        .disabled(item.stockStatus == .outOfStock)
     }
 
-    private func legendDot(color: Color, label: String) -> some View {
-        HStack(spacing: 4) {
-            Circle().fill(color).frame(width: 6, height: 6)
-            Text(label)
-        }
-    }
-
-    private var colorSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Color")
-                .font(.system(size: 15, weight: .semibold))
+    // MARK: - Color Selection Section
+    
+    private var colorSelectionSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Select Color")
+                .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(.primary)
 
-            HStack(spacing: 12) {
-                ForEach(data.colors) { color in
-                    Button { selectedColor = color } label: {
-                        VStack(spacing: 4) {
-                            Circle()
-                                .fill(Color(scanifyHex: color.hex))
-                                .frame(width: 32, height: 32)
-                                .overlay(
-                                    Circle()
-                                        .stroke(selectedColor?.id == color.id ? Color.primary : .clear, lineWidth: 2)
-                                        .padding(-3)
-                                )
-                            Text(color.name)
-                                .font(.system(size: 10, weight: .medium))
-                                .foregroundStyle(.secondary)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 16) {
+                    ForEach(data.colors) { color in
+                        Button {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                selectedColor = color
+                            }
+                            #if !targetEnvironment(simulator)
+                            let generator = UIImpactFeedbackGenerator(style: .light)
+                            generator.impactOccurred()
+                            #endif
+                        } label: {
+                            VStack(spacing: 10) {
+                                Circle()
+                                    .fill(Color(scanifyHex: color.hex))
+                                    .frame(width: 48, height: 48)
+                                    .overlay(
+                                        Circle()
+                                            .strokeBorder(Color.primary, lineWidth: 2)
+                                            .padding(-4)
+                                            .opacity(selectedColor?.id == color.id ? 1 : 0)
+                                    )
+                                    .shadow(color: Color(scanifyHex: color.hex).opacity(0.3), radius: 8, y: 4)
+                                
+                                Text(color.name)
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundStyle(selectedColor?.id == color.id ? .primary : .secondary)
+                            }
                         }
                     }
                 }
-                Spacer()
+                .padding(.horizontal, 20)
             }
+            .padding(.horizontal, -20)
         }
+        .padding(.horizontal, 20)
     }
 
-    private var detailsSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Details")
-                .font(.system(size: 15, weight: .semibold))
+    // MARK: - Delivery Options Section
+    
+    private var deliveryOptionsSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("How would you like to get your order?")
+                .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(.primary)
-
-            HStack {
-                Label("Fit", systemImage: "ruler")
-                    .font(.system(size: 13))
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Text(data.fit)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.primary)
+            
+            VStack(spacing: 12) {
+                // Shipping option
+                deliveryOptionButton(
+                    icon: "shippingbox.fill",
+                    title: "Ship to Me",
+                    subtitle: "Free shipping on orders over $50 • 2-3 business days",
+                    isSelected: deliveryMethod == .shipping,
+                    action: {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            deliveryMethod = .shipping
+                        }
+                        #if !targetEnvironment(simulator)
+                        let generator = UIImpactFeedbackGenerator(style: .light)
+                        generator.impactOccurred()
+                        #endif
+                    }
+                )
+                
+                // Pickup option
+                if let sizeData = selectedSizeData, sizeData.stockStatus != .outOfStock {
+                    deliveryOptionButton(
+                        icon: "bag.fill",
+                        title: "Pick Up at Store",
+                        subtitle: "Ready for pickup in 1 hour • Free",
+                        isSelected: deliveryMethod == .pickup,
+                        action: {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                deliveryMethod = .pickup
+                            }
+                            #if !targetEnvironment(simulator)
+                            let generator = UIImpactFeedbackGenerator(style: .light)
+                            generator.impactOccurred()
+                            #endif
+                        }
+                    )
+                }
             }
-            .padding(12)
-            .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: 12))
-
-            HStack {
-                Label("Material", systemImage: "leaf.fill")
-                    .font(.system(size: 13))
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Text(data.material)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.primary)
-            }
-            .padding(12)
-            .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: 12))
         }
+        .padding(.horizontal, 20)
+    }
+    
+    private func deliveryOptionButton(
+        icon: String,
+        title: String,
+        subtitle: String,
+        isSelected: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 16) {
+                Image(systemName: icon)
+                    .font(.system(size: 22))
+                    .foregroundStyle(isSelected ? accentColor : .secondary)
+                    .frame(width: 44, height: 44)
+                    .background(
+                        Circle()
+                            .fill(isSelected ? accentColor.opacity(0.1) : Color(.tertiarySystemFill))
+                    )
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.primary)
+                    
+                    Text(subtitle)
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.leading)
+                }
+                
+                Spacer()
+                
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 24))
+                    .foregroundStyle(isSelected ? accentColor : Color(.tertiaryLabel))
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color(.secondarySystemGroupedBackground))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(isSelected ? accentColor : Color.clear, lineWidth: 2)
+            )
+        }
+        .buttonStyle(.plain)
     }
 
-    private func buyOnlineSection(size: String) -> some View {
-        VStack(spacing: 12) {
+    // MARK: - Product Details Section
+    
+    private var productDetailsSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Product Details")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(.primary)
+            
+            VStack(spacing: 12) {
+                detailRow(icon: "ruler", label: "Fit", value: data.fit)
+                detailRow(icon: "leaf.fill", label: "Material", value: data.material)
+            }
+        }
+        .padding(.horizontal, 20)
+    }
+    
+    private func detailRow(icon: String, label: String, value: String) -> some View {
+        HStack {
+            Image(systemName: icon)
+                .font(.system(size: 16))
+                .foregroundStyle(.secondary)
+                .frame(width: 24)
+            
+            Text(label)
+                .font(.system(size: 15))
+                .foregroundStyle(.secondary)
+            
+            Spacer()
+            
+            Text(value)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(.primary)
+        }
+        .padding(.vertical, 12)
+        .padding(.horizontal, 16)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Color(.secondarySystemGroupedBackground))
+        )
+    }
+    
+    // MARK: - Nearby Stores Section
+    
+    private var nearbyStoresSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 8) {
                 Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 16))
                     .foregroundStyle(.orange)
-                Text("Size \(size) is not available at this location")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.secondary)
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Out of Stock")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.primary)
+                    
+                    Text("Check nearby stores or ship to your address")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                }
             }
-
-            ClipActionButton(title: "Ship \(size) to Me", icon: "shippingbox.fill") {
-                onBuyOnline(size)
-            }
-        }
-        .transition(.move(edge: .bottom).combined(with: .opacity))
-    }
-
-    private var nearbySection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Nearby Stores")
-                .font(.system(size: 15, weight: .semibold))
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.orange.opacity(0.1))
+            )
+            
+            Text("Available Nearby")
+                .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(.primary)
 
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Yorkdale Mall")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(.primary)
-                    Text("Size M available")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.green)
-                }
-                Spacer()
-                Text("4.2 km")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.secondary)
+            VStack(spacing: 12) {
+                nearbyStoreRow(
+                    name: "Yorkdale Mall",
+                    availability: "Size \(selectedSize ?? "M") available",
+                    distance: "4.2 km",
+                    stockColor: .green
+                )
+                
+                nearbyStoreRow(
+                    name: "Eaton Centre",
+                    availability: "Low stock (2 left)",
+                    distance: "6.1 km",
+                    stockColor: .orange
+                )
             }
-            .padding(12)
-            .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: 12))
-
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Eaton Centre")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(.primary)
-                    Text("Size M — Low stock (2 left)")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.yellow)
+        }
+        .padding(.horizontal, 20)
+    }
+    
+    private func nearbyStoreRow(name: String, availability: String, distance: String, stockColor: Color) -> some View {
+        HStack(spacing: 16) {
+            Image(systemName: "storefront.fill")
+                .font(.system(size: 20))
+                .foregroundStyle(.secondary)
+                .frame(width: 44, height: 44)
+                .background(
+                    Circle()
+                        .fill(Color(.tertiarySystemFill))
+                )
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(name)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(.primary)
+                
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(stockColor)
+                        .frame(width: 6, height: 6)
+                    
+                    Text(availability)
+                        .font(.system(size: 13))
+                        .foregroundStyle(stockColor)
                 }
-                Spacer()
-                Text("6.1 km")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.secondary)
             }
-            .padding(12)
-            .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: 12))
+            
+            Spacer()
+            
+            Text(distance)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(.secondary)
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(.secondarySystemGroupedBackground))
+        )
+    }
+    
+    // MARK: - Bottom Action Bar
+    
+    private var bottomActionBar: some View {
+        VStack(spacing: 0) {
+            Divider()
+            
+            HStack(spacing: 16) {
+                // Favorite button
+                Button {
+                    #if !targetEnvironment(simulator)
+                    let generator = UIImpactFeedbackGenerator(style: .light)
+                    generator.impactOccurred()
+                    #endif
+                } label: {
+                    Image(systemName: "heart")
+                        .font(.system(size: 20))
+                        .foregroundStyle(.primary)
+                        .frame(width: 52, height: 52)
+                        .background(
+                            RoundedRectangle(cornerRadius: 26)
+                                .fill(Color(.secondarySystemFill))
+                        )
+                }
+                
+                // Add to Bag button
+                Button {
+                    if let size = selectedSize {
+                        #if !targetEnvironment(simulator)
+                        let generator = UIImpactFeedbackGenerator(style: .medium)
+                        generator.impactOccurred()
+                        #endif
+                        onBuyOnline(size)
+                    }
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "bag.fill")
+                            .font(.system(size: 18, weight: .semibold))
+                        
+                        Text(deliveryMethod == .pickup ? "Pick Up at Store" : "Add to Bag")
+                            .font(.system(size: 17, weight: .semibold))
+                    }
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 52)
+                    .background(
+                        RoundedRectangle(cornerRadius: 26)
+                            .fill(canPurchase ? Color.primary : Color(.tertiaryLabel))
+                    )
+                }
+                .disabled(!canPurchase)
+                .opacity(canPurchase ? 1.0 : 0.5)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+            .background(
+                Color(.systemBackground)
+                    .ignoresSafeArea()
+            )
         }
     }
 }
