@@ -1085,13 +1085,6 @@ private struct SephoraScanifyFlowView: View {
     @State private var lastUnknownBarcode: String = ""
     @State private var scanHistory: [ScannedProduct] = []
 
-    private var demoProducts: [ScannedProduct] {
-        if let cat = allowedCategory {
-            return ScanifyMockData.allProducts.filter { $0.category == cat }
-        }
-        return ScanifyMockData.allProducts
-    }
-
     var body: some View {
         ZStack {
             if showSuccess {
@@ -1126,9 +1119,9 @@ private struct SephoraScanifyFlowView: View {
     private var productNotFoundMessage: String {
         if lastUnknownBarcode.isEmpty { return "" }
         if allowedCategory != nil {
-            return "This product isn't available at \(storeBranding.displayName). Try one of the sample products below."
+            return "This product isn't available at \(storeBranding.displayName)."
         }
-        return "Barcode \(lastUnknownBarcode) is not in our demo database. Try one of the sample products."
+        return "Barcode \(lastUnknownBarcode) is not in our database."
     }
 
     private var cameraScanner: some View {
@@ -1192,33 +1185,8 @@ private struct SephoraScanifyFlowView: View {
 
                 Spacer()
 
-                VStack(spacing: 8) {
-                    Text("Demo Products")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.5))
-
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(demoProducts) { product in
-                                Button { handleBarcode(product.barcode) } label: {
-                                    HStack(spacing: 6) {
-                                        Image(systemName: product.category.icon)
-                                            .font(.system(size: 11))
-                                        Text(product.name)
-                                            .font(.system(size: 11, weight: .medium))
-                                            .lineLimit(1)
-                                    }
-                                    .foregroundStyle(.white)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 8)
-                                    .glassEffect(.regular.interactive(), in: .capsule)
-                                }
-                            }
-                        }
-                        .padding(.horizontal, 16)
-                    }
-                }
-                .padding(.bottom, 100)
+                Spacer()
+                    .padding(.bottom, 100)
             }
         }
     }
