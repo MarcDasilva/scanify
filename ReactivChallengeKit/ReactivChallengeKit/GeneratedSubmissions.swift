@@ -3812,15 +3812,21 @@ enum ScanifyMockData {
     }
 
     private static let products: [String: ScannedProduct] = [
-        // Word-based barcode keys (for printed demo barcodes)
+        // Word-based barcode keys (for printed demo barcodes — "Nike" barcode → P-6000 shoe)
         "Sephora": cosmeticsProduct,
-        "Nike": apparelProduct,
+        "Nike": nikeShoeProduct,
+        "NIKE": nikeShoeProduct,
+        "nike": nikeShoeProduct,
+        "P6000": nikeShoeProduct,
+        "Nike P-6000": nikeShoeProduct,
+        "Tee": apparelProduct,
         "Walmart": foodProduct,
         "Shoppers": pharmacyProduct,
         "Best Buy": electronicsProduct,
 
         // Numeric barcode keys
-        "4901234567890": apparelProduct,
+        "4901234567890": nikeShoeProduct,
+        "4901234567891": apparelProduct,
         "0012345678905": foodProduct,
         "7891234567890": pharmacyProduct,
         "3456789012345": cosmeticsProduct,
@@ -3829,8 +3835,38 @@ enum ScanifyMockData {
 
     // MARK: - Product Definitions
 
+    private static let nikeShoeProduct = ScannedProduct(
+        barcode: "P6000",
+        name: "Nike P-6000",
+        brand: "Nike",
+        category: .apparel,
+        price: 105.00,
+        currency: "CAD",
+        categoryData: .apparel(ApparelData(
+            sizes: [
+                SizeInventory(size: "US 1Y", inStock: 2),
+                SizeInventory(size: "US 1.5Y", inStock: 0),
+                SizeInventory(size: "US 2Y", inStock: 3),
+                SizeInventory(size: "US 2.5Y", inStock: 1),
+                SizeInventory(size: "US 3Y", inStock: 4),
+                SizeInventory(size: "US 3.5Y", inStock: 2),
+                SizeInventory(size: "US 4Y", inStock: 0),
+                SizeInventory(size: "US 7", inStock: 3),
+                SizeInventory(size: "US 8.5", inStock: 5),
+                SizeInventory(size: "US 9", inStock: 4),
+            ],
+            colors: [
+                ColorVariant(name: "White/Blue Tint/Black/Metallic Silver", hex: "#F5F5F5"),
+                ColorVariant(name: "Black", hex: "#1C1C1E"),
+                ColorVariant(name: "Navy", hex: "#1A3A5C"),
+            ],
+            fit: "Regular Fit",
+            material: "100% Recycled Polyester"
+        ))
+    )
+
     private static let apparelProduct = ScannedProduct(
-        barcode: "Nike",
+        barcode: "Tee",
         name: "Dri-FIT Running Tee",
         brand: "Nike",
         category: .apparel,

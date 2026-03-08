@@ -73,6 +73,94 @@ private struct NikeSwooshShape: Shape {
     }
 }
 
+// MARK: - Nike loading (white Shop screen with spinner)
+
+private struct NikeLoadingView: View {
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 0) {
+                HStack(spacing: 8) {
+                    NikeSwooshShape()
+                        .fill(Color.black)
+                        .frame(width: 24, height: 9)
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.white)
+                        .overlay(Image(systemName: "figure.run").font(.system(size: 14)).foregroundStyle(.black))
+                        .frame(width: 44, height: 32)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Color.white, in: Capsule())
+                .overlay(Capsule().stroke(Color.black.opacity(0.15), lineWidth: 1))
+                Spacer()
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 17, weight: .medium))
+                    .foregroundStyle(.black)
+                    .frame(width: 44, height: 44)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 12)
+
+            HStack {
+                Text("Shop")
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundStyle(.black)
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+
+            Spacer()
+            ProgressView()
+                .scaleEffect(1.2)
+                .tint(.black)
+            Spacer()
+
+            HStack(spacing: 0) {
+                VStack(spacing: 4) {
+                    Image(systemName: "house")
+                        .font(.system(size: 20, weight: .medium))
+                    Text("Home").font(.system(size: 10, weight: .medium))
+                }
+                .foregroundStyle(Color(white: 0.6))
+                .frame(maxWidth: .infinity)
+                VStack(spacing: 4) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 20, weight: .medium))
+                    Text("Shop").font(.system(size: 10, weight: .medium))
+                }
+                .foregroundStyle(.black)
+                .frame(maxWidth: .infinity)
+                VStack(spacing: 4) {
+                    Image(systemName: "heart")
+                        .font(.system(size: 20, weight: .medium))
+                    Text("Favorites").font(.system(size: 10, weight: .medium))
+                }
+                .foregroundStyle(Color(white: 0.6))
+                .frame(maxWidth: .infinity)
+                VStack(spacing: 4) {
+                    Image(systemName: "bag")
+                        .font(.system(size: 20, weight: .medium))
+                    Text("Bag").font(.system(size: 10, weight: .medium))
+                }
+                .foregroundStyle(Color(white: 0.6))
+                .frame(maxWidth: .infinity)
+                VStack(spacing: 4) {
+                    Image(systemName: "person")
+                        .font(.system(size: 20, weight: .medium))
+                    Text("Profile").font(.system(size: 10, weight: .medium))
+                }
+                .foregroundStyle(Color(white: 0.6))
+                .frame(maxWidth: .infinity)
+            }
+            .padding(.top, 10)
+            .padding(.bottom, 24)
+        }
+        .background(Color.white)
+        .ignoresSafeArea()
+    }
+}
+
 // MARK: - Nike scanner overlay (black/white, Nike branding)
 
 private struct NikeScannerOverlay: View {
@@ -163,6 +251,7 @@ private struct NikeScanifyFlowView: View {
     @State private var showSuccess = false
     @State private var showProductNotFound = false
     @State private var showNikeSplash = false
+    @State private var showNikeLoading = false
     @State private var lastUnknownBarcode: String = ""
     @State private var scanHistory: [ScannedProduct] = []
     @Namespace private var heroNamespace
@@ -182,6 +271,10 @@ private struct NikeScanifyFlowView: View {
                     .zIndex(3)
             } else if showNikeSplash {
                 NikeSplashView()
+                    .transition(.opacity)
+                    .zIndex(2)
+            } else if showNikeLoading {
+                NikeLoadingView()
                     .transition(.opacity)
                     .zIndex(2)
             } else if showBag && !bagItems.isEmpty {
@@ -224,7 +317,7 @@ private struct NikeScanifyFlowView: View {
             ZStack {
                 ScanifyBarcodeScannerView(
                     onBarcodeScanned: { handleBarcode($0) },
-                    isActive: scannedProduct == nil && !showBag && !showSuccess && !showProductNotFound
+                    isActive: scannedProduct == nil && !showBag && !showSuccess && !showProductNotFound && !showNikeSplash && !showNikeLoading
                 )
                 .ignoresSafeArea()
 
@@ -306,6 +399,7 @@ private struct NikeScanifyFlowView: View {
         .animation(.spring(duration: 0.55, bounce: 0.32), value: scannedProduct?.id)
         .animation(.spring(duration: 0.4), value: showBag)
         .animation(.easeOut(duration: 0.25), value: showNikeSplash)
+        .animation(.easeOut(duration: 0.25), value: showNikeLoading)
         .alert("Product Not Found", isPresented: $showProductNotFound) {
             Button("Scan Again", role: .cancel) {}
         } message: {
@@ -339,12 +433,18 @@ private struct NikeScanifyFlowView: View {
         showNikeSplash = true
         let productToShow = product
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.48) {
-            withAnimation(.easeOut(duration: 0.22)) {
+            withAnimation(.easeOut(duration: 0.2)) {
                 showNikeSplash = false
+                showNikeLoading = true
             }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
-                withAnimation(.spring(duration: 0.52, bounce: 0.32)) {
-                    scannedProduct = productToShow
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                withAnimation(.easeOut(duration: 0.25)) {
+                    showNikeLoading = false
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+                    withAnimation(.spring(duration: 0.5, bounce: 0.3)) {
+                        scannedProduct = productToShow
+                    }
                 }
             }
         }
@@ -378,7 +478,11 @@ private struct NikeProductPageView: View {
     }
 
     private var categoryLabel: String {
-        product.name.contains("P-6000") ? "MEN'S SHOES" : "MEN'S WORKOUT SHOES"
+        product.name.contains("P-6000") ? "Older Kids' Shoes" : "Men's Workout Shoes"
+    }
+
+    private var priceText: String {
+        "CA$\(Int(product.price))"
     }
 
     var body: some View {
@@ -386,44 +490,46 @@ private struct NikeProductPageView: View {
             VStack(spacing: 0) {
                 heroImageSection
                 VStack(alignment: .leading, spacing: 16) {
+                    Text(product.name)
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundStyle(.black)
                     Text(categoryLabel)
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(.secondary)
-                        .textCase(.uppercase)
-                    Text(product.name.uppercased())
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundStyle(.primary)
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text("\(product.currency) \(String(format: "%.2f", product.price))")
-                            .font(.system(size: 18, weight: .bold))
-                        HStack(spacing: 4) {
-                            Image(systemName: "star.fill")
-                                .font(.system(size: 12))
-                            Text("4.0 /251")
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundStyle(.secondary)
+                        .font(.system(size: 14, weight: .regular))
+                        .foregroundStyle(Color(white: 0.45))
+
+                    Text(priceText)
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(.black)
+
+                    // Select Size + Size Guide (Nike white style)
+                    HStack {
+                        Text("Select Size")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(.black)
+                        Spacer()
+                        Button { } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "ruler")
+                                    .font(.system(size: 12))
+                                Text("Size Guide")
+                                    .font(.system(size: 14, weight: .medium))
+                            }
+                            .foregroundStyle(.black)
                         }
                     }
 
-                    Button {
-                        showSizeSheet = true
-                    } label: {
-                        HStack {
-                            Text("Select size")
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundStyle(.primary)
-                            Spacer()
-                            if let s = selectedSize {
-                                Text(s)
-                                    .font(.system(size: 15, weight: .regular))
-                                    .foregroundStyle(.secondary)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 10) {
+                            if let data = apparelData {
+                                ForEach(data.sizes) { item in
+                                    sizeChip(size: item.size, inStock: item.inStock > 0, selected: selectedSize == item.size) {
+                                        selectedSize = item.size
+                                    }
+                                }
                             }
                         }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 14)
-                        .background(Color(.secondarySystemFill), in: RoundedRectangle(cornerRadius: 12))
+                        .padding(.vertical, 4)
                     }
-                    .buttonStyle(.plain)
 
                     Button {
                         addToBag()
@@ -438,20 +544,34 @@ private struct NikeProductPageView: View {
                     .buttonStyle(.plain)
                     .disabled(selectedSize == nil)
 
+                    Button { } label: {
+                        HStack {
+                            Text("Favorite")
+                                .font(.system(size: 16, weight: .medium))
+                            Image(systemName: "heart")
+                                .font(.system(size: 14, weight: .medium))
+                        }
+                        .foregroundStyle(.black)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color.white, in: RoundedRectangle(cornerRadius: 12))
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.black.opacity(0.25), lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+
                     if let data = apparelData {
                         colorSection(data: data)
-                        detailsSection(data: data)
-                        nearbyStoresSection()
                     }
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 20)
-                .padding(.bottom, 32)
+                .padding(.bottom, 100)
             }
         }
         .scrollIndicators(.hidden)
-        .background(Color(.systemBackground))
+        .background(Color.white)
         .overlay(alignment: .topLeading) { topBar }
+        .overlay(alignment: .bottom) { nikeBottomNav(active: .shop) }
         .onAppear { setDefaults() }
         .sheet(isPresented: $showSizeSheet) {
             if let data = apparelData {
@@ -471,23 +591,23 @@ private struct NikeProductPageView: View {
     private var heroImageSection: some View {
         ZStack(alignment: .bottom) {
             RoundedRectangle(cornerRadius: 0)
-                .fill(Color(.secondarySystemFill))
+                .fill(Color(white: 0.96))
                 .overlay(
                     Image(systemName: "tshirt.fill")
                         .font(.system(size: 80))
-                        .foregroundStyle(Color.black.opacity(0.2))
+                        .foregroundStyle(Color.black.opacity(0.12))
                 )
-                .frame(height: 400)
+                .frame(height: 380)
                 .frame(maxWidth: .infinity)
                 .matchedGeometryEffect(id: "product-hero-\(product.id)", in: heroNamespace)
             HStack(spacing: 6) {
                 ForEach(0..<3, id: \.self) { i in
                     Circle()
-                        .fill(i == 0 ? Color.black : Color.black.opacity(0.25))
+                        .fill(i == 0 ? Color.black : Color.black.opacity(0.2))
                         .frame(width: i == 0 ? 8 : 6, height: 6)
                 }
             }
-            .padding(.bottom, 20)
+            .padding(.bottom, 16)
         }
         .padding(.top, 8)
     }
@@ -497,36 +617,83 @@ private struct NikeProductPageView: View {
             Button(action: onBack) {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(.black)
                     .frame(width: 44, height: 44)
             }
             Spacer()
-            HStack(spacing: 8) {
-                NikeSwooshShape()
-                    .fill(Color.primary)
-                    .frame(width: 24, height: 9)
-                Text("NIKE")
-                    .font(.system(size: 16, weight: .bold))
-                    .tracking(1.5)
-                    .foregroundStyle(.primary)
-            }
+            Text(product.name)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(.black)
             Spacer()
-            Button { } label: {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 17, weight: .medium))
-                    .foregroundStyle(.primary)
-                    .frame(width: 44, height: 44)
+            HStack(spacing: 20) {
+                Button { } label: {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(.black)
+                }
+                Button { } label: {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 17, weight: .medium))
+                        .foregroundStyle(.black)
+                }
             }
+            .frame(width: 88, alignment: .trailing)
         }
         .padding(.horizontal, 4)
         .padding(.top, 8)
-        .background(Color(.systemBackground))
+        .background(Color.white)
+    }
+
+    private func sizeChip(size: String, inStock: Bool, selected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(size)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(inStock ? (selected ? .white : .black) : Color(white: 0.7))
+        }
+        .disabled(!inStock)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(
+            inStock && selected ? Color.black : Color.white,
+            in: RoundedRectangle(cornerRadius: 8)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.black.opacity(0.2), lineWidth: 1)
+        )
+        .buttonStyle(.plain)
+    }
+
+    private enum NikeTab { case home, shop, favorites, bag, profile }
+    private func nikeBottomNav(active: NikeTab) -> some View {
+        HStack(spacing: 0) {
+            navItem(icon: "house", label: "Home", isActive: active == .home)
+            navItem(icon: "magnifyingglass", label: "Shop", isActive: active == .shop)
+            navItem(icon: "heart", label: "Favorites", isActive: active == .favorites)
+            navItem(icon: "bag", label: "Bag", isActive: active == .bag)
+            navItem(icon: "person", label: "Profile", isActive: active == .profile)
+        }
+        .padding(.top, 10)
+        .padding(.bottom, 24)
+        .background(Color.white)
+    }
+
+    private func navItem(icon: String, label: String, isActive: Bool) -> some View {
+        VStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 20, weight: .medium))
+            Text(label)
+                .font(.system(size: 10, weight: .medium))
+        }
+        .foregroundStyle(isActive ? .black : Color(white: 0.6))
+        .frame(maxWidth: .infinity)
     }
 
     private func colorSection(data: ApparelData) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Color")
-                .font(.system(size: 16, weight: .semibold))
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(.black)
             HStack(spacing: 16) {
                 ForEach(data.colors) { color in
                     Button {
@@ -536,79 +703,18 @@ private struct NikeProductPageView: View {
                             Circle()
                                 .fill(Color(scanifyHex: color.hex))
                                 .frame(width: 32, height: 32)
-                                .overlay(Circle().strokeBorder(selectedColor?.id == color.id ? Color.blue : .clear, lineWidth: 2))
+                                .overlay(Circle().strokeBorder(selectedColor?.id == color.id ? Color.black : Color.black.opacity(0.2), lineWidth: selectedColor?.id == color.id ? 2 : 1))
                             Text(color.name)
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundStyle(selectedColor?.id == color.id ? .blue : .secondary)
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundStyle(Color(white: 0.45))
+                                .lineLimit(2)
+                                .multilineTextAlignment(.center)
                         }
+                        .frame(width: 80)
                     }
                     .buttonStyle(.plain)
                 }
             }
-        }
-    }
-
-    private func detailsSection(data: ApparelData) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Details")
-                .font(.system(size: 16, weight: .semibold))
-            HStack {
-                Label("Fit", systemImage: "ruler")
-                    .font(.system(size: 14))
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Text(data.fit)
-                    .font(.system(size: 14, weight: .medium))
-            }
-            .padding(14)
-            .background(Color(.secondarySystemFill).opacity(0.6), in: RoundedRectangle(cornerRadius: 12))
-            HStack {
-                Label("Material", systemImage: "leaf.fill")
-                    .font(.system(size: 14))
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Text(data.material)
-                    .font(.system(size: 14, weight: .medium))
-            }
-            .padding(14)
-            .background(Color(.secondarySystemFill).opacity(0.6), in: RoundedRectangle(cornerRadius: 12))
-        }
-    }
-
-    private func nearbyStoresSection() -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Nearby Stores")
-                .font(.system(size: 16, weight: .semibold))
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Yorkdale Mall")
-                        .font(.system(size: 14, weight: .medium))
-                    Text("Size \(selectedSize ?? "M") available")
-                        .font(.system(size: 12))
-                        .foregroundStyle(.green)
-                }
-                Spacer()
-                Text("4.2 km")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.secondary)
-            }
-            .padding(14)
-            .background(Color(.secondarySystemFill).opacity(0.6), in: RoundedRectangle(cornerRadius: 12))
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Eaton Centre")
-                        .font(.system(size: 14, weight: .medium))
-                    Text("Size \(selectedSize ?? "M") — Low stock (2 left)")
-                        .font(.system(size: 12))
-                        .foregroundStyle(.orange)
-                }
-                Spacer()
-                Text("6.1 km")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.secondary)
-            }
-            .padding(14)
-            .background(Color(.secondarySystemFill).opacity(0.6), in: RoundedRectangle(cornerRadius: 12))
         }
     }
 
@@ -618,7 +724,8 @@ private struct NikeProductPageView: View {
             selectedColor = first
         }
         if selectedSize == nil {
-            selectedSize = data.sizes.first(where: { $0.size == "US 9" })?.size
+            selectedSize = data.sizes.first(where: { $0.size == "US 2Y" })?.size
+                ?? data.sizes.first(where: { $0.size == "US 9" })?.size
                 ?? data.sizes.first(where: { $0.inStock > 0 })?.size
         }
     }
@@ -751,14 +858,12 @@ private struct NikeSizeSheet: View {
     }
 }
 
-// MARK: - Nike Bag View (matches Nike app Bag screen)
+// MARK: - Nike Bag View (Nike branded white style)
 
 private struct NikeBagView: View {
     let items: [NikeBagItem]
     let onCheckout: () -> Void
     let onBackToProduct: () -> Void
-
-    @State private var showPromoCode = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -768,98 +873,61 @@ private struct NikeBagView: View {
                         Button(action: onBackToProduct) {
                             Image(systemName: "chevron.left")
                                 .font(.system(size: 17, weight: .semibold))
-                                .foregroundStyle(.primary)
+                                .foregroundStyle(.black)
                                 .frame(width: 44, height: 44)
                         }
                         Text("Bag")
                             .font(.system(size: 28, weight: .bold))
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(.black)
                         Spacer()
                     }
                     .padding(.top, 8)
 
-                    // Promo banner
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Gear Up for the Fall Event")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(.primary)
-                        Text("Use code FALL25 for 25% off select styles.")
-                            .font(.system(size: 13, weight: .regular))
-                            .foregroundStyle(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(14)
-                    .background(Color(.secondarySystemFill).opacity(0.8), in: RoundedRectangle(cornerRadius: 12))
-
-                    // Product card(s)
                     ForEach(items) { item in
                         bagProductCard(item)
                     }
 
-                    // Shipping
-                    VStack(alignment: .leading, spacing: 6) {
+                    Rectangle()
+                        .fill(Color.black.opacity(0.08))
+                        .frame(height: 1)
+
+                    HStack {
+                        Text("Subtotal")
+                            .font(.system(size: 15, weight: .regular))
+                            .foregroundStyle(.black)
+                        Spacer()
+                        Text(String(format: "CA$%.2f", itemSubtotal))
+                            .font(.system(size: 15, weight: .regular))
+                            .foregroundStyle(.black)
+                    }
+                    HStack {
                         Text("Shipping")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(.primary)
-                        HStack(spacing: 4) {
-                            Text("Arrives by Tue, Aug 20 to ")
-                                .font(.system(size: 14, weight: .regular))
-                                .foregroundStyle(.secondary)
-                            Text("94085")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundStyle(.blue)
-                                .underline()
-                        }
+                            .font(.system(size: 15, weight: .regular))
+                            .foregroundStyle(.black)
+                        Spacer()
+                        Text("CA$10.95")
+                            .font(.system(size: 15, weight: .regular))
+                            .foregroundStyle(.black)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                    // Pickup
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Pickup")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(.primary)
-                        Button { } label: {
-                            Text("Find a Store")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundStyle(.blue)
-                                .underline()
-                        }
+                    HStack {
+                        Text("Estimated Total")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundStyle(.black)
+                        Spacer()
+                        Text(String(format: "CA$%.2f", itemSubtotal + 10.95))
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundStyle(.black)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                    // Promo code
-                    Button {
-                        showPromoCode.toggle()
-                    } label: {
-                        HStack {
-                            Text("Have a Promo Code?")
-                                .font(.system(size: 15, weight: .medium))
-                                .foregroundStyle(.primary)
-                            Spacer()
-                            Image(systemName: showPromoCode ? "minus" : "plus")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.vertical, 12)
-                    }
-                    .buttonStyle(.plain)
-
-                    // Free shipping
-                    HStack(spacing: 8) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 18))
-                            .foregroundStyle(.green)
-                        Text("You've earned Free Shipping!")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundStyle(.primary)
-                    }
-                    .padding(.bottom, 24)
+                    Text("(Import taxes added at checkout)")
+                        .font(.system(size: 12, weight: .regular))
+                        .foregroundStyle(Color(white: 0.5))
+                        .padding(.bottom, 24)
                 }
                 .padding(.horizontal, 20)
             }
             .scrollIndicators(.hidden)
+            .background(Color.white)
 
-            // Checkout button
             Button(action: onCheckout) {
                 Text("Checkout")
                     .font(.system(size: 17, weight: .semibold))
@@ -872,13 +940,12 @@ private struct NikeBagView: View {
             .padding(.horizontal, 20)
             .padding(.bottom, 8)
 
-            // Bottom nav (Nike-style)
             HStack(spacing: 0) {
-                navItem(icon: "house", label: "Home")
-                navItem(icon: "magnifyingglass", label: "Shop")
-                navItem(icon: "heart", label: "Favorites")
+                bagNavItem(icon: "house", label: "Home")
+                bagNavItem(icon: "magnifyingglass", label: "Shop")
+                bagNavItem(icon: "heart", label: "Favorites")
                 ZStack(alignment: .topTrailing) {
-                    navItem(icon: "bag.fill", label: "Bag", active: true)
+                    bagNavItem(icon: "bag.fill", label: "Bag", active: true)
                     Text("\(items.count)")
                         .font(.system(size: 10, weight: .bold))
                         .foregroundStyle(.white)
@@ -886,80 +953,87 @@ private struct NikeBagView: View {
                         .background(Color.red, in: Circle())
                         .offset(x: 12, y: -6)
                 }
-                navItem(icon: "person", label: "Profile")
+                bagNavItem(icon: "person", label: "Profile")
             }
             .padding(.top, 8)
             .padding(.bottom, 24)
-            .background(Color(.systemBackground))
+            .background(Color.white)
         }
-        .background(Color(.systemGroupedBackground))
+        .background(Color.white)
+    }
+
+    private var itemSubtotal: Double {
+        items.reduce(0) { $0 + $1.price }
     }
 
     private func bagProductCard(_ item: NikeBagItem) -> some View {
         HStack(alignment: .top, spacing: 14) {
             RoundedRectangle(cornerRadius: 10)
-                .fill(Color(.secondarySystemFill))
+                .fill(Color(white: 0.94))
                 .frame(width: 100, height: 100)
                 .overlay(
                     Image(systemName: "tshirt.fill")
                         .font(.system(size: 36))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color(white: 0.7))
                 )
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.product.name)
                     .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(.black)
                 Text(productCategoryLabel(item.product))
                     .font(.system(size: 13, weight: .regular))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color(white: 0.45))
                 Text(item.colorName)
                     .font(.system(size: 13, weight: .regular))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color(white: 0.45))
                 Text(sizeLabel(item))
                     .font(.system(size: 13, weight: .regular))
-                    .foregroundStyle(.secondary)
-
+                    .foregroundStyle(Color(white: 0.45))
+                Text("Just a few left")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.red)
                 HStack {
                     Text("Qty \(item.quantity)")
                         .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(.black)
                     Image(systemName: "chevron.down")
                         .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color(white: 0.5))
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            Text(String(format: "$%.2f", item.price))
+            Text(String(format: "CA$%.2f", item.price))
                 .font(.system(size: 16, weight: .bold))
-                .foregroundStyle(.primary)
+                .foregroundStyle(.black)
         }
         .padding(14)
-        .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 12))
+        .background(Color.white, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.black.opacity(0.08), lineWidth: 1))
+    }
+
+    private func bagNavItem(icon: String, label: String, active: Bool = false) -> some View {
+        VStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 20, weight: .medium))
+            Text(label)
+                .font(.system(size: 10, weight: .medium))
+        }
+        .foregroundStyle(active ? .black : Color(white: 0.6))
+        .frame(maxWidth: .infinity)
     }
 
     private func productCategoryLabel(_ product: ScannedProduct) -> String {
-        product.name.contains("P-6000") ? "Men's Shoes" : "Men's Workout Shoes"
+        product.name.contains("P-6000") ? "Older Kids' Shoes" : "Men's Workout Shoes"
     }
 
     private func sizeLabel(_ item: NikeBagItem) -> String {
         if item.size.hasPrefix("US ") {
-            let num = item.size.replacingOccurrences(of: "US ", with: "")
-            return "M \(num) / W \((Double(num) ?? 0) + 1.5)"
+            let rest = String(item.size.dropFirst(3))
+            if rest.hasSuffix("Y") { return rest }
+            if let n = Double(rest) { return "M \(rest) / W \(n + 1.5)" }
         }
         return item.size
-    }
-
-    private func navItem(icon: String, label: String, active: Bool = false) -> some View {
-        VStack(spacing: 4) {
-            Image(systemName: icon)
-                .font(.system(size: 20, weight: .medium))
-                .foregroundStyle(active ? .primary : .secondary)
-            Text(label)
-                .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(active ? .primary : .secondary)
-        }
-        .frame(maxWidth: .infinity)
     }
 }

@@ -309,11 +309,12 @@ struct StoreBranding {
 
 enum ScanifyMockData {
     static func lookup(barcode: String) -> ScannedProduct? {
-        // Try exact match first, then case-insensitive match for word-based barcodes
-        if let product = products[barcode] {
+        // Trim whitespace (real barcodes can have trailing/leading space)
+        let trimmed = barcode.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let product = products[trimmed] {
             return product
         }
-        let lower = barcode.lowercased()
+        let lower = trimmed.lowercased()
         return products.first(where: { $0.key.lowercased() == lower })?.value
     }
 
@@ -329,6 +330,8 @@ enum ScanifyMockData {
         // Word-based barcode keys (for printed demo barcodes)
         "Sephora": cosmeticsProduct,
         "Nike": nikeShoeProduct,
+        "NIKE": nikeShoeProduct,
+        "nike": nikeShoeProduct,
         "P6000": nikeShoeProduct,
         "Nike P-6000": nikeShoeProduct,
         "Tee": apparelProduct,
@@ -373,33 +376,29 @@ enum ScanifyMockData {
         ))
     )
 
-    /// Nike P-6000 shoe for store checkout / Nike-style PDP
+    /// Nike P-6000 shoe — barcode "Nike" resolves here
     private static let nikeShoeProduct = ScannedProduct(
         barcode: "P6000",
         name: "Nike P-6000",
         brand: "Nike",
         category: .apparel,
-        price: 104.95,
-        currency: "GBP",
+        price: 105.00,
+        currency: "CAD",
         categoryData: .apparel(ApparelData(
             sizes: [
+                SizeInventory(size: "US 1Y", inStock: 2),
+                SizeInventory(size: "US 1.5Y", inStock: 0),
+                SizeInventory(size: "US 2Y", inStock: 3),
+                SizeInventory(size: "US 2.5Y", inStock: 1),
+                SizeInventory(size: "US 3Y", inStock: 4),
                 SizeInventory(size: "US 7", inStock: 3),
-                SizeInventory(size: "US 7.5", inStock: 2),
-                SizeInventory(size: "US 8", inStock: 0),
                 SizeInventory(size: "US 8.5", inStock: 5),
                 SizeInventory(size: "US 9", inStock: 4),
-                SizeInventory(size: "US 9.5", inStock: 1),
-                SizeInventory(size: "US 10", inStock: 0),
-                SizeInventory(size: "US 10.5", inStock: 0),
-                SizeInventory(size: "US 11", inStock: 6),
-                SizeInventory(size: "US 11.5", inStock: 2),
-                SizeInventory(size: "US 12", inStock: 0),
-                SizeInventory(size: "US 13", inStock: 2),
             ],
             colors: [
+                ColorVariant(name: "White/Blue Tint/Black/Metallic Silver", hex: "#F5F5F5"),
                 ColorVariant(name: "Black", hex: "#1C1C1E"),
                 ColorVariant(name: "Navy", hex: "#1A3A5C"),
-                ColorVariant(name: "White", hex: "#F5F5F5"),
             ],
             fit: "Regular Fit",
             material: "100% Recycled Polyester"
