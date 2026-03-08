@@ -130,7 +130,8 @@ private struct WalmartScanifyFlowView: View {
                     Image("walmart_full_logo")
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(height: 65)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 160)
 
                     Text("Scan a product barcode")
                         .font(.system(size: 15, weight: .medium))

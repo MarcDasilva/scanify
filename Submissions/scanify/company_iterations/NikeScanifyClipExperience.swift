@@ -485,32 +485,34 @@ private struct NikeScanifyFlowView: View {
 
                 Spacer().frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                VStack(spacing: 8) {
-                    Text("Demo Products")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.5))
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(demoProducts) { product in
-                                Button { handleBarcode(product.barcode) } label: {
-                                    HStack(spacing: 6) {
-                                        Image(systemName: storeBranding.icon)
-                                            .font(.system(size: 11))
-                                        Text(product.name)
-                                            .font(.system(size: 11, weight: .medium))
-                                            .lineLimit(1)
+                if storeBranding.storeId != "nike" {
+                    VStack(spacing: 8) {
+                        Text("Demo Products")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.5))
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(demoProducts) { product in
+                                    Button { handleBarcode(product.barcode) } label: {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: storeBranding.icon)
+                                                .font(.system(size: 11))
+                                            Text(product.name)
+                                                .font(.system(size: 11, weight: .medium))
+                                                .lineLimit(1)
+                                        }
+                                        .foregroundStyle(.white)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 8)
+                                        .glassEffect(.regular.interactive(), in: .capsule)
                                     }
-                                    .foregroundStyle(.white)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 8)
-                                    .glassEffect(.regular.interactive(), in: .capsule)
                                 }
                             }
+                            .padding(.horizontal, 16)
                         }
-                        .padding(.horizontal, 16)
                     }
+                    .padding(.bottom, 100)
                 }
-                .padding(.bottom, 100)
 
             }
             .zIndex(0)

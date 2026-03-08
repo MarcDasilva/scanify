@@ -7,31 +7,58 @@
 import SwiftUI
 
 /// Non-dismissible banner replicating the real App Clip "Get the full app" bar.
+/// Shows Nike-specific content only when the current clip is the Nike clip.
 struct ConstraintBanner: View {
+    /// URL pattern of the currently active clip (e.g. "scanify.app/nike/scan"). When this is the Nike clip, Nike branding is shown; otherwise a generic bar is shown.
+    var urlPattern: String = ""
+
     @Environment(\.openURL) private var openURL
+
+    private var isNikeClip: Bool {
+        urlPattern.lowercased().contains("nike")
+    }
 
     var body: some View {
         HStack(spacing: 10) {
-            Image("nike_swoosh")
-                .renderingMode(.template)
-                .resizable()
-                .scaledToFit()
-                .foregroundStyle(.black)
-                .frame(width: 36, height: 14)
+            if isNikeClip {
+                Image("nike_swoosh")
+                    .renderingMode(.template)
+                    .resizable()
+                    .scaledToFit()
+                    .foregroundStyle(.black)
+                    .frame(width: 36, height: 14)
 
-            VStack(alignment: .leading, spacing: 1) {
-                Text("Nike App")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.primary)
-                Text("Get the full Nike app experience")
-                    .font(.system(size: 11))
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Nike App")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.primary)
+                    Text("Get the full Nike app experience")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                Image(systemName: "square.dashed")
+                    .font(.system(size: 20, weight: .medium))
                     .foregroundStyle(.secondary)
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("App Clip")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.primary)
+                    Text("Get the full app experience")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
             }
 
             Spacer()
 
             Button {
-                openURL(URL(string: "https://apps.apple.com/app/id387649656")!)
+                if isNikeClip {
+                    openURL(URL(string: "https://apps.apple.com/app/id387649656")!)
+                } else {
+                    openURL(URL(string: "https://apps.apple.com/app-clips")!)
+                }
             } label: {
                 Text("GET")
                     .font(.system(size: 13, weight: .bold))

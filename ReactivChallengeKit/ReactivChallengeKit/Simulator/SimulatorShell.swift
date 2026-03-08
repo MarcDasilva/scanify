@@ -43,7 +43,7 @@ struct ClipHostView: View {
     var body: some View {
         match.makeView()
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                ConstraintBanner()
+                ConstraintBanner(urlPattern: match.experienceType.urlPattern)
                     .padding(.top, 8)
                     .padding(.bottom, 4)
             }
