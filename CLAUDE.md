@@ -106,6 +106,10 @@ Submissions should address: problem framing, proposed solution, platform extensi
 3. Include screen recordings of it working
 4. Fill out `SUBMISSION.md` with team info and idea description
 
+## Submission assets (Scanify)
+
+**All submission-specific asset catalogs and images must live only under `Submissions/scanify/`.** Do not add or modify imagesets (e.g. `*.imageset` with `Contents.json`) or image files in `ReactivChallengeKit/ReactivChallengeKit/Assets.xcassets/`. Use `Submissions/scanify/Assets.xcassets/` for Scanify images; keep images inside their imageset folders there.
+
 ## App Clip Constraints (design rules)
 
 See `ReactivChallengeKit/CONSTRAINTS.md` for full details. Key constraints clips must respect:
