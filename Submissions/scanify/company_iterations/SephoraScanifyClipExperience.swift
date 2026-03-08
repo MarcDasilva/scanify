@@ -90,6 +90,26 @@ private struct SephoraScanifyFlowView: View {
             ScannerOverlayView(storeBranding: storeBranding)
                 .ignoresSafeArea()
 
+            VStack(spacing: 0) {
+                Image("sephora_logo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 88)
+                    .padding(.top, 44)
+                    .padding(.bottom, 16)
+                    .frame(maxWidth: .infinity)
+                    .background(
+                        LinearGradient(
+                            colors: [.white, .white, .white.opacity(0)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .ignoresSafeArea(edges: .top)
+                    )
+
+                Spacer()
+            }
+
             VStack {
                 if !scanHistory.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {

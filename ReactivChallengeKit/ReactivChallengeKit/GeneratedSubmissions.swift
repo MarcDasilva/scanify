@@ -1280,6 +1280,26 @@ private struct SephoraScanifyFlowView: View {
             ScannerOverlayView(storeBranding: storeBranding)
                 .ignoresSafeArea()
 
+            VStack(spacing: 0) {
+                Image("sephora_logo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 88)
+                    .padding(.top, 44)
+                    .padding(.bottom, 16)
+                    .frame(maxWidth: .infinity)
+                    .background(
+                        LinearGradient(
+                            colors: [.white, .white, .white.opacity(0)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .ignoresSafeArea(edges: .top)
+                    )
+
+                Spacer()
+            }
+
             VStack {
                 if !scanHistory.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
@@ -2962,30 +2982,10 @@ struct ScannerOverlayView: View {
                 Spacer()
             }
 
-            // Top bar
+            // Instruction
             VStack {
-                HStack(spacing: 12) {
-                    Image(systemName: storeBranding.icon)
-                        .font(.system(size: 22, weight: .medium))
-                        .foregroundStyle(storeBranding.accentColor)
-
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text("Scanify")
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundStyle(.white)
-                        Text(storeBranding.displayName)
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(.white.opacity(0.7))
-                    }
-
-                    Spacer()
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 12)
-
                 Spacer()
 
-                // Instruction
                 Text("Point at a barcode to scan")
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(.white.opacity(0.9))
