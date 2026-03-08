@@ -34,7 +34,6 @@ Using **rsync** (recommended — one command, overwrites cleanly):
 rsync -a /Users/marc/scanify/ /Users/marc/reactivapp-clipkit-lab/ \
   --exclude='.git' \
   --exclude='.DS_Store' \
-  --exclude='PR_WORKFLOW.md' \
   --exclude='*.xcuserstate' \
   --exclude='DerivedData'
 ```
