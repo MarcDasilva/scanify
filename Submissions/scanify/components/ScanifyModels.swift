@@ -396,7 +396,7 @@ enum ScanifyMockData {
                 SizeInventory(size: "US 9", inStock: 4),
             ],
             colors: [
-                ColorVariant(name: "White/Blue Tint/Black/Metallic Silver", hex: "#F5F5F5"),
+                ColorVariant(name: "White", hex: "#F5F5F5"),
                 ColorVariant(name: "Black", hex: "#1C1C1E"),
                 ColorVariant(name: "Navy", hex: "#1A3A5C"),
             ],

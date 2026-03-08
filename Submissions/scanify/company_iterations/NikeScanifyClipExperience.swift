@@ -120,41 +120,14 @@ private struct NikeLoadingView: View {
             Spacer()
 
             HStack(spacing: 0) {
-                VStack(spacing: 4) {
-                    Image(systemName: "house")
-                        .font(.system(size: 20, weight: .medium))
-                    Text("Home").font(.system(size: 10, weight: .medium))
+                ForEach([("magnifyingglass", "Shop", true), ("heart", "Favorites", false), ("bag", "Bag", false), ("person", "Profile", false)], id: \.1) { icon, label, active in
+                    VStack(spacing: 4) {
+                        Image(systemName: icon).font(.system(size: 20, weight: .medium))
+                        Text(label).font(.system(size: 10, weight: .medium))
+                    }
+                    .foregroundStyle(active ? Color.black : Color(white: 0.6))
+                    .frame(maxWidth: .infinity)
                 }
-                .foregroundStyle(Color(white: 0.6))
-                .frame(maxWidth: .infinity)
-                VStack(spacing: 4) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 20, weight: .medium))
-                    Text("Shop").font(.system(size: 10, weight: .medium))
-                }
-                .foregroundStyle(.black)
-                .frame(maxWidth: .infinity)
-                VStack(spacing: 4) {
-                    Image(systemName: "heart")
-                        .font(.system(size: 20, weight: .medium))
-                    Text("Favorites").font(.system(size: 10, weight: .medium))
-                }
-                .foregroundStyle(Color(white: 0.6))
-                .frame(maxWidth: .infinity)
-                VStack(spacing: 4) {
-                    Image(systemName: "bag")
-                        .font(.system(size: 20, weight: .medium))
-                    Text("Bag").font(.system(size: 10, weight: .medium))
-                }
-                .foregroundStyle(Color(white: 0.6))
-                .frame(maxWidth: .infinity)
-                VStack(spacing: 4) {
-                    Image(systemName: "person")
-                        .font(.system(size: 20, weight: .medium))
-                    Text("Profile").font(.system(size: 10, weight: .medium))
-                }
-                .foregroundStyle(Color(white: 0.6))
-                .frame(maxWidth: .infinity)
             }
             .padding(.top, 10)
             .padding(.bottom, 24)
@@ -173,9 +146,9 @@ private struct NikeScannerOverlay: View {
             Color.black.opacity(0.35)
                 .ignoresSafeArea()
 
-            // Full-screen corner brackets
+            // Full-screen corner brackets (within safe area so they don't overlap status bar)
             GeometryReader { geo in
-                let inset: CGFloat = 28
+                let inset: CGFloat = 20
                 let len: CGFloat = 44
                 let thick: CGFloat = 3.5
                 let color = Color.white
@@ -212,7 +185,7 @@ private struct NikeScannerOverlay: View {
                 }
                 .stroke(color, style: StrokeStyle(lineWidth: thick, lineCap: .round, lineJoin: .round))
             }
-            .ignoresSafeArea()
+            // No .ignoresSafeArea() — coordinates respect safe area so corners stay below status bar
 
             // Crosshair in center
             Image(systemName: "plus")
@@ -249,6 +222,71 @@ private struct NikeScannerOverlay: View {
     }
 }
 
+// MARK: - Shared nav tab
+
+private enum NikeTab { case shop, favorites, bag, profile }
+
+private struct NikeSharedBottomBar: View {
+    let active: NikeTab
+    let bagCount: Int
+    let hasFavorites: Bool
+    let onShop: () -> Void
+    let onFavorites: () -> Void
+    let onBag: () -> Void
+    let onProfile: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Rectangle().fill(Color.black.opacity(0.1)).frame(height: 0.5)
+            HStack(spacing: 0) {
+                Button(action: onShop) {
+                    barItem(icon: "magnifyingglass", label: "Shop", isActive: active == .shop)
+                }.buttonStyle(.plain)
+
+                Button(action: onFavorites) {
+                    barItem(
+                        icon: hasFavorites ? "heart.fill" : "heart",
+                        label: "Favorites",
+                        isActive: active == .favorites,
+                        tint: hasFavorites ? Color.red : nil
+                    )
+                }.buttonStyle(.plain)
+
+                Button(action: onBag) {
+                    ZStack(alignment: .topTrailing) {
+                        barItem(icon: active == .bag ? "bag.fill" : "bag", label: "Bag", isActive: active == .bag)
+                        if bagCount > 0 {
+                            Text("\(bagCount)")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(.white)
+                                .frame(minWidth: 15, minHeight: 15)
+                                .background(Color.red, in: Circle())
+                                .offset(x: 2, y: -2)
+                        }
+                    }
+                }.buttonStyle(.plain)
+
+                Button(action: onProfile) {
+                    barItem(icon: active == .profile ? "person.fill" : "person", label: "Profile", isActive: active == .profile)
+                }.buttonStyle(.plain)
+            }
+            .padding(.top, 10)
+            .padding(.bottom, 24)
+            .background(Color.white)
+        }
+        .background(Color.white)
+    }
+
+    private func barItem(icon: String, label: String, isActive: Bool, tint: Color? = nil) -> some View {
+        VStack(spacing: 4) {
+            Image(systemName: icon).font(.system(size: 20, weight: .medium))
+            Text(label).font(.system(size: 10, weight: .medium))
+        }
+        .foregroundStyle(tint ?? (isActive ? Color.black : Color(white: 0.6)))
+        .frame(maxWidth: .infinity)
+    }
+}
+
 // MARK: - Bag item for Nike flow
 
 struct NikeBagItem: Identifiable {
@@ -268,7 +306,10 @@ private struct NikeScanifyFlowView: View {
 
     @State private var scannedProduct: ScannedProduct?
     @State private var bagItems: [NikeBagItem] = []
+    @State private var favoritedProducts: [ScannedProduct] = []
     @State private var showBag = false
+    @State private var showFavorites = false
+    @State private var showProfile = false
     @State private var showCheckout = false
     @State private var showSuccess = false
     @State private var showProductNotFound = false
@@ -322,15 +363,50 @@ private struct NikeScanifyFlowView: View {
                     removal: .move(edge: .trailing).combined(with: .opacity)
                 ))
                 .zIndex(2)
-            } else if showBag && !bagItems.isEmpty {
+            } else if showProfile {
+                NikeProfileView(
+                    bagCount: bagItems.count,
+                    hasFavorites: !favoritedProducts.isEmpty,
+                    favoritedProducts: favoritedProducts,
+                    onViewShop: { withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) { showProfile = false } },
+                    onViewFavorites: { withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) { showProfile = false; showFavorites = true } },
+                    onViewBag: { withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) { showProfile = false; showBag = true } }
+                )
+                .transition(.asymmetric(
+                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                    removal: .move(edge: .trailing).combined(with: .opacity)
+                ))
+                .zIndex(2)
+            } else if showFavorites {
+                NikeFavoritesView(
+                    favoritedProducts: favoritedProducts,
+                    bagCount: bagItems.count,
+                    onRemoveFavorite: { p in withAnimation { favoritedProducts.removeAll { $0.id == p.id } } },
+                    onViewProduct: { p in
+                        withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+                            showFavorites = false
+                            scannedProduct = p
+                        }
+                    },
+                    onViewShop: { withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) { showFavorites = false } },
+                    onViewBag: { withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) { showFavorites = false; showBag = true } },
+                    onViewProfile: { withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) { showFavorites = false; showProfile = true } }
+                )
+                .transition(.asymmetric(
+                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                    removal: .move(edge: .trailing).combined(with: .opacity)
+                ))
+                .zIndex(2)
+            } else if showBag {
                 NikeBagView(
                     items: bagItems,
+                    hasFavorites: !favoritedProducts.isEmpty,
                     onCheckout: {
                         withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) { showCheckout = true }
                     },
-                    onBackToProduct: {
-                        withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) { showBag = false }
-                    }
+                    onViewShop: { withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) { showBag = false } },
+                    onViewFavorites: { withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) { showBag = false; showFavorites = true } },
+                    onViewProfile: { withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) { showBag = false; showProfile = true } }
                 )
                 .transition(.asymmetric(
                     insertion: .move(edge: .trailing).combined(with: .opacity),
@@ -341,11 +417,24 @@ private struct NikeScanifyFlowView: View {
                 NikeProductPageView(
                     product: product,
                     storeBranding: storeBranding,
+                    isFavorited: favoritedProducts.contains(where: { $0.id == product.id }),
                     onBack: { withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) { scannedProduct = nil } },
                     onAddToBag: { item in
                         bagItems.append(item)
                         withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) { showBag = true }
-                    }
+                    },
+                    onViewBag: { withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) { showBag = true } },
+                    onToggleFavorite: {
+                        withAnimation(.spring(duration: 0.35, bounce: 0.4)) {
+                            if favoritedProducts.contains(where: { $0.id == product.id }) {
+                                favoritedProducts.removeAll { $0.id == product.id }
+                            } else {
+                                favoritedProducts.append(product)
+                            }
+                        }
+                    },
+                    onViewFavorites: { withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) { showFavorites = true } },
+                    onViewProfile: { withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) { showProfile = true } }
                 )
                 .transition(.asymmetric(
                     insertion: .move(edge: .bottom).combined(with: .opacity),
@@ -358,7 +447,7 @@ private struct NikeScanifyFlowView: View {
             ZStack {
                 ScanifyBarcodeScannerView(
                     onBarcodeScanned: { handleBarcode($0) },
-                    isActive: scannedProduct == nil && !showBag && !showSuccess && !showProductNotFound && !showNikeSplash && !showNikeLoading
+                    isActive: scannedProduct == nil && !showBag && !showFavorites && !showProfile && !showSuccess && !showProductNotFound && !showNikeSplash && !showNikeLoading
                 )
                 .ignoresSafeArea()
 
@@ -495,8 +584,13 @@ private struct NikeScanifyFlowView: View {
 private struct NikeProductPageView: View {
     let product: ScannedProduct
     let storeBranding: StoreBranding
+    let isFavorited: Bool
     let onBack: () -> Void
     let onAddToBag: (NikeBagItem) -> Void
+    let onViewBag: () -> Void
+    let onToggleFavorite: () -> Void
+    let onViewFavorites: () -> Void
+    let onViewProfile: () -> Void
 
     @State private var selectedSize: String?
     @State private var selectedColor: ColorVariant?
@@ -553,19 +647,35 @@ private struct NikeProductPageView: View {
                         HStack(spacing: 10) {
                             if let data = apparelData {
                                 ForEach(data.sizes) { item in
-                                    sizeChip(size: item.size, inStock: item.inStock > 0, selected: selectedSize == item.size) {
-                                        selectedSize = item.size
-                                    }
+                                    sizeChip(
+                                        size: item.size,
+                                        inStock: item.inStock > 0,
+                                        stockCount: item.inStock,
+                                        selected: selectedSize == item.size
+                                    ) { selectedSize = item.size }
                                 }
                             }
                         }
                         .padding(.vertical, 4)
                     }
 
+                    // Stock indicator for selected size
+                    if let data = apparelData, let sel = selectedSize,
+                       let item = data.sizes.first(where: { $0.size == sel }) {
+                        HStack(spacing: 6) {
+                            Circle()
+                                .fill(item.stockStatus.color)
+                                .frame(width: 7, height: 7)
+                            Text(item.inStock == 0 ? "Out of stock at this location" : item.inStock <= 3 ? "Only \(item.inStock) left in store" : "\(item.inStock) in stock at this location")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(item.inStock == 0 ? Color.red : item.inStock <= 3 ? Color.orange : Color(white: 0.35))
+                        }
+                    }
+
                     Button {
                         addToBag()
                     } label: {
-                        Text("Add to Bag")
+                        Text("Ship to Me")
                             .font(.system(size: 17, weight: .semibold))
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
@@ -575,23 +685,26 @@ private struct NikeProductPageView: View {
                     .buttonStyle(.plain)
                     .disabled(selectedSize == nil)
 
-                    Button { } label: {
+                    Button(action: onToggleFavorite) {
                         HStack {
-                            Text("Favorite")
+                            Text(isFavorited ? "Favorited" : "Favorite")
                                 .font(.system(size: 16, weight: .medium))
-                            Image(systemName: "heart")
+                            Image(systemName: isFavorited ? "heart.fill" : "heart")
                                 .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(isFavorited ? Color.red : Color.black)
                         }
                         .foregroundStyle(.black)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
                         .background(Color.white, in: RoundedRectangle(cornerRadius: 12))
-                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.black.opacity(0.25), lineWidth: 1))
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(isFavorited ? Color.red.opacity(0.4) : Color.black.opacity(0.25), lineWidth: 1))
                     }
                     .buttonStyle(.plain)
 
                     if let data = apparelData {
                         colorSection(data: data)
+                        detailsSection(data: data)
+                        nearbyStoresSection(selectedSize: selectedSize, data: data)
                     }
                 }
                 .padding(.horizontal, 20)
@@ -602,7 +715,17 @@ private struct NikeProductPageView: View {
         .scrollIndicators(.hidden)
         .background(Color.white)
         .overlay(alignment: .topLeading) { topBar }
-        .overlay(alignment: .bottom) { nikeBottomNav(active: .shop) }
+        .overlay(alignment: .bottom) {
+            NikeSharedBottomBar(
+                active: .shop,
+                bagCount: 0,
+                hasFavorites: isFavorited,
+                onShop: { },
+                onFavorites: onViewFavorites,
+                onBag: onViewBag,
+                onProfile: onViewProfile
+            )
+        }
         .onAppear { setDefaults() }
         .sheet(isPresented: $showSizeSheet) {
             if let data = apparelData {
@@ -691,15 +814,26 @@ private struct NikeProductPageView: View {
         .background(Color.white)
     }
 
-    private func sizeChip(size: String, inStock: Bool, selected: Bool, action: @escaping () -> Void) -> some View {
+    private func sizeChip(size: String, inStock: Bool, stockCount: Int, selected: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Text(size)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(inStock ? (selected ? .white : .black) : Color(white: 0.7))
+            VStack(spacing: 2) {
+                Text(size)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(inStock ? (selected ? Color.white : Color.black) : Color(white: 0.65))
+                if inStock {
+                    Text(stockCount <= 3 ? "Low" : "\(stockCount) left")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(selected ? Color.white.opacity(0.75) : (stockCount <= 3 ? Color.orange : Color(white: 0.5)))
+                } else {
+                    Text("Out")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(Color(white: 0.6))
+                }
+            }
         }
         .disabled(!inStock)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
         .background(
             inStock && selected ? Color.black : Color.white,
             in: RoundedRectangle(cornerRadius: 8)
@@ -711,57 +845,110 @@ private struct NikeProductPageView: View {
         .buttonStyle(.plain)
     }
 
-    private enum NikeTab { case home, shop, favorites, bag, profile }
-    private func nikeBottomNav(active: NikeTab) -> some View {
-        HStack(spacing: 0) {
-            navItem(icon: "house", label: "Home", isActive: active == .home)
-            navItem(icon: "magnifyingglass", label: "Shop", isActive: active == .shop)
-            navItem(icon: "heart", label: "Favorites", isActive: active == .favorites)
-            navItem(icon: "bag", label: "Bag", isActive: active == .bag)
-            navItem(icon: "person", label: "Profile", isActive: active == .profile)
-        }
-        .padding(.top, 10)
-        .padding(.bottom, 24)
-        .background(Color.white)
-    }
-
-    private func navItem(icon: String, label: String, isActive: Bool) -> some View {
-        VStack(spacing: 4) {
-            Image(systemName: icon)
-                .font(.system(size: 20, weight: .medium))
-            Text(label)
-                .font(.system(size: 10, weight: .medium))
-        }
-        .foregroundStyle(isActive ? .black : Color(white: 0.6))
-        .frame(maxWidth: .infinity)
-    }
-
     private func colorSection(data: ApparelData) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Color")
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(.black)
-            HStack(spacing: 16) {
+            HStack(alignment: .top, spacing: 16) {
                 ForEach(data.colors) { color in
                     Button {
                         selectedColor = color
                     } label: {
-                        VStack(spacing: 6) {
+                        VStack(spacing: 8) {
                             Circle()
                                 .fill(Color(scanifyHex: color.hex))
-                                .frame(width: 32, height: 32)
+                                .frame(width: 44, height: 44)
                                 .overlay(Circle().strokeBorder(selectedColor?.id == color.id ? Color.black : Color.black.opacity(0.2), lineWidth: selectedColor?.id == color.id ? 2 : 1))
                             Text(color.name)
                                 .font(.system(size: 11, weight: .medium))
                                 .foregroundStyle(Color(white: 0.45))
                                 .lineLimit(2)
                                 .multilineTextAlignment(.center)
+                                .frame(height: 30, alignment: .top)
                         }
-                        .frame(width: 80)
+                        .frame(width: 64)
                     }
                     .buttonStyle(.plain)
                 }
             }
+        }
+    }
+
+    private static let nearbyStores: [(name: String, address: String, distance: String)] = [
+        ("Eaton Centre", "220 Yonge St, Toronto, ON", "1.2 km"),
+        ("Yorkdale Mall", "3401 Dufferin St, Toronto, ON", "8.4 km"),
+        ("Square One", "100 City Centre Dr, Mississauga, ON", "22.1 km"),
+    ]
+
+    private func detailsSection(data: ApparelData) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Details")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(.black)
+            VStack(spacing: 0) {
+                detailRow(icon: "arrow.left.and.right.square", label: "Fit", value: data.fit)
+                Rectangle().fill(Color.black.opacity(0.07)).frame(height: 0.5).padding(.leading, 44)
+                detailRow(icon: "leaf", label: "Material", value: data.material)
+            }
+            .background(Color(white: 0.97), in: RoundedRectangle(cornerRadius: 10))
+        }
+    }
+
+    private func detailRow(icon: String, label: String, value: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 14))
+                .foregroundStyle(Color(white: 0.55))
+                .frame(width: 24)
+            Text(label)
+                .font(.system(size: 14))
+                .foregroundStyle(Color(white: 0.45))
+            Spacer()
+            Text(value)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(.black)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+    }
+
+    private func nearbyStoresSection(selectedSize: String?, data: ApparelData) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Nearby Stores")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(.black)
+            VStack(spacing: 0) {
+                ForEach(Array(Self.nearbyStores.enumerated()), id: \.offset) { index, store in
+                    let available = selectedSize.map { sz in
+                        (data.sizes.first(where: { $0.size == sz })?.inStock ?? 0) > 0
+                    } ?? true
+                    HStack(spacing: 12) {
+                        Image(systemName: "storefront")
+                            .font(.system(size: 14))
+                            .foregroundStyle(Color(white: 0.55))
+                            .frame(width: 24)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(store.name)
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(.black)
+                            Text(available ? (selectedSize.map { "Size \($0) available" } ?? "In stock") : "Selected size unavailable")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(available ? Color.green : Color.red)
+                        }
+                        Spacer()
+                        Text(store.distance)
+                            .font(.system(size: 13))
+                            .foregroundStyle(Color(white: 0.5))
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    if index < Self.nearbyStores.count - 1 {
+                        Rectangle().fill(Color.black.opacity(0.07)).frame(height: 0.5).padding(.leading, 50)
+                    }
+                }
+            }
+            .background(Color(white: 0.97), in: RoundedRectangle(cornerRadius: 10))
         }
     }
 
@@ -892,14 +1079,14 @@ private struct NikeSizeSheet: View {
             VStack(spacing: 4) {
                 Text(item.size)
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(isOut ? .secondary : (isSelected ? .white : .primary))
+                    .foregroundStyle(isOut ? Color.secondary : (isSelected ? Color.white : Color.primary))
                 HStack(spacing: 4) {
                     Circle()
                         .fill(item.stockStatus.color)
                         .frame(width: 6, height: 6)
                     Text(item.inStock == 0 ? "Out" : "\(item.inStock) left")
                         .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(isSelected ? .white.opacity(0.9) : .secondary)
+                        .foregroundStyle(isSelected ? Color.white.opacity(0.9) : Color.secondary)
                 }
             }
             .frame(maxWidth: .infinity)
@@ -914,30 +1101,279 @@ private struct NikeSizeSheet: View {
     }
 }
 
+// MARK: - Nike Profile View
+
+private struct NikeProfileView: View {
+    let bagCount: Int
+    let hasFavorites: Bool
+    let favoritedProducts: [ScannedProduct]
+    let onViewShop: () -> Void
+    let onViewFavorites: () -> Void
+    let onViewBag: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(spacing: 0) {
+                    // Header
+                    VStack(spacing: 14) {
+                        Circle()
+                            .fill(Color(white: 0.88))
+                            .frame(width: 90, height: 90)
+                            .overlay(
+                                Image(systemName: "camera.fill")
+                                    .font(.system(size: 28))
+                                    .foregroundStyle(Color(white: 0.55))
+                            )
+                        Text("Aidan Jeon")
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundStyle(.black)
+                        Button { } label: {
+                            Text("Edit Profile")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(.black)
+                                .padding(.horizontal, 44)
+                                .padding(.vertical, 10)
+                                .overlay(Capsule().stroke(Color.black.opacity(0.28), lineWidth: 1.5))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 28)
+                    .padding(.bottom, 20)
+
+                    Divider()
+
+                    // 4-grid quicklinks
+                    HStack(spacing: 0) {
+                        profileGridItem(icon: "shippingbox.fill", label: "Orders")
+                        Rectangle().fill(Color.black.opacity(0.1)).frame(width: 0.5, height: 52)
+                        profileGridItem(icon: "qrcode", label: "Pass")
+                        Rectangle().fill(Color.black.opacity(0.1)).frame(width: 0.5, height: 52)
+                        profileGridItem(icon: "calendar", label: "Events")
+                        Rectangle().fill(Color.black.opacity(0.1)).frame(width: 0.5, height: 52)
+                        profileGridItem(icon: "gearshape.fill", label: "Settings")
+                    }
+                    .padding(.vertical, 8)
+
+                    Divider()
+
+                    // Inbox
+                    HStack {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("Inbox")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundStyle(.black)
+                            Text("View messages")
+                                .font(.system(size: 14))
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Color(white: 0.6))
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 16)
+
+                    Divider()
+
+                    // Following
+                    VStack(alignment: .leading, spacing: 14) {
+                        HStack {
+                            Text("Following (3)")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundStyle(.black)
+                            Spacer()
+                            Text("Edit")
+                                .font(.system(size: 15))
+                                .foregroundStyle(.secondary)
+                        }
+                        HStack(spacing: 10) {
+                            ForEach(["basketball", "person.2.fill", "figure.run"], id: \.self) { icon in
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(Color(white: 0.92))
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 110)
+                                    .overlay(
+                                        Image(systemName: icon)
+                                            .font(.system(size: 26))
+                                            .foregroundStyle(Color(white: 0.55))
+                                    )
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 16)
+
+                    Divider()
+
+                    Text("Member Since June 2021")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                        .padding(.vertical, 20)
+                }
+                .padding(.bottom, 20)
+            }
+            .scrollIndicators(.hidden)
+            .background(Color.white)
+
+            NikeSharedBottomBar(
+                active: .profile,
+                bagCount: bagCount,
+                hasFavorites: hasFavorites,
+                onShop: onViewShop,
+                onFavorites: onViewFavorites,
+                onBag: onViewBag,
+                onProfile: { }
+            )
+        }
+        .background(Color.white)
+    }
+
+    private func profileGridItem(icon: String, label: String) -> some View {
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 22))
+                .foregroundStyle(.black)
+            Text(label)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(.black)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 14)
+    }
+}
+
+// MARK: - Nike Favorites View
+
+private struct NikeFavoritesView: View {
+    let favoritedProducts: [ScannedProduct]
+    let bagCount: Int
+    let onRemoveFavorite: (ScannedProduct) -> Void
+    let onViewProduct: (ScannedProduct) -> Void
+    let onViewShop: () -> Void
+    let onViewBag: () -> Void
+    let onViewProfile: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header
+            HStack {
+                Text("Favorites")
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundStyle(.black)
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 8)
+
+            if favoritedProducts.isEmpty {
+                VStack(spacing: 16) {
+                    Spacer()
+                    Image(systemName: "heart")
+                        .font(.system(size: 52))
+                        .foregroundStyle(Color(white: 0.82))
+                    Text("No favorites yet")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(.black)
+                    Text("Heart items on the product page to save them here.")
+                        .font(.system(size: 14))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 48)
+                    Spacer()
+                }
+            } else {
+                ScrollView {
+                    VStack(spacing: 12) {
+                        ForEach(favoritedProducts) { product in
+                            favoriteCard(product)
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 20)
+                }
+                .scrollIndicators(.hidden)
+            }
+
+            NikeSharedBottomBar(
+                active: .favorites,
+                bagCount: bagCount,
+                hasFavorites: !favoritedProducts.isEmpty,
+                onShop: onViewShop,
+                onFavorites: { },
+                onBag: onViewBag,
+                onProfile: onViewProfile
+            )
+        }
+        .background(Color.white)
+    }
+
+    private func favoriteCard(_ product: ScannedProduct) -> some View {
+        Button(action: { onViewProduct(product) }) {
+            HStack(spacing: 14) {
+                Group {
+                    if product.name.contains("P-6000") {
+                        Image("NIKEP-6000").resizable().scaledToFit()
+                    } else {
+                        Image(systemName: "tshirt.fill")
+                            .font(.system(size: 32))
+                            .foregroundStyle(Color(white: 0.65))
+                            .frame(width: 90, height: 90)
+                    }
+                }
+                .frame(width: 90, height: 90)
+                .background(Color(white: 0.95), in: RoundedRectangle(cornerRadius: 10))
+
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(product.name)
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(.black)
+                    Text(product.name.contains("P-6000") ? "Older Kids' Shoes" : "Men's Workout Shoes")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                    Text("CA$\(Int(product.price))")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(.black)
+                        .padding(.top, 2)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                Button(action: { onRemoveFavorite(product) }) {
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: 20))
+                        .foregroundStyle(.red)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(14)
+            .background(Color.white, in: RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.black.opacity(0.08), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 // MARK: - Nike Bag View (Nike branded white style)
 
 private struct NikeBagView: View {
     let items: [NikeBagItem]
+    let hasFavorites: Bool
     let onCheckout: () -> Void
-    let onBackToProduct: () -> Void
+    let onViewShop: () -> Void
+    let onViewFavorites: () -> Void
+    let onViewProfile: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    HStack(alignment: .center, spacing: 12) {
-                        Button(action: onBackToProduct) {
-                            Image(systemName: "chevron.left")
-                                .font(.system(size: 17, weight: .semibold))
-                                .foregroundStyle(.black)
-                                .frame(width: 44, height: 44)
-                        }
-                        Text("Bag")
-                            .font(.system(size: 28, weight: .bold))
-                            .foregroundStyle(.black)
-                        Spacer()
-                    }
-                    .padding(.top, 8)
+                    Text("Bag")
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundStyle(.black)
+                        .padding(.top, 16)
 
                     ForEach(items) { item in
                         bagProductCard(item)
@@ -996,24 +1432,15 @@ private struct NikeBagView: View {
             .padding(.horizontal, 20)
             .padding(.bottom, 8)
 
-            HStack(spacing: 0) {
-                bagNavItem(icon: "house", label: "Home")
-                bagNavItem(icon: "magnifyingglass", label: "Shop")
-                bagNavItem(icon: "heart", label: "Favorites")
-                ZStack(alignment: .topTrailing) {
-                    bagNavItem(icon: "bag.fill", label: "Bag", active: true)
-                    Text("\(items.count)")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(.white)
-                        .frame(minWidth: 16, minHeight: 16)
-                        .background(Color.red, in: Circle())
-                        .offset(x: 12, y: -6)
-                }
-                bagNavItem(icon: "person", label: "Profile")
-            }
-            .padding(.top, 8)
-            .padding(.bottom, 24)
-            .background(Color.white)
+            NikeSharedBottomBar(
+                active: .bag,
+                bagCount: items.count,
+                hasFavorites: hasFavorites,
+                onShop: onViewShop,
+                onFavorites: onViewFavorites,
+                onBag: { },
+                onProfile: onViewProfile
+            )
         }
         .background(Color.white)
     }
@@ -1073,17 +1500,6 @@ private struct NikeBagView: View {
         .padding(14)
         .background(Color.white, in: RoundedRectangle(cornerRadius: 12))
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.black.opacity(0.08), lineWidth: 1))
-    }
-
-    private func bagNavItem(icon: String, label: String, active: Bool = false) -> some View {
-        VStack(spacing: 4) {
-            Image(systemName: icon)
-                .font(.system(size: 20, weight: .medium))
-            Text(label)
-                .font(.system(size: 10, weight: .medium))
-        }
-        .foregroundStyle(active ? .black : Color(white: 0.6))
-        .frame(maxWidth: .infinity)
     }
 
     private func productCategoryLabel(_ product: ScannedProduct) -> String {
@@ -1219,10 +1635,10 @@ private struct NikeCheckoutView: View {
                     sectionHeader(title: "Delivery") {
                         VStack(alignment: .leading, spacing: 3) {
                             Text("Aidan Jeon").font(.system(size: 15, weight: .medium))
-                            Text("#107-15388 101 Ave").font(.system(size: 15)).foregroundStyle(.secondary)
-                            Text("Surrey, BC  V3R 0N4").font(.system(size: 15)).foregroundStyle(.secondary)
+                            Text("42 Wellington St W, Unit 8").font(.system(size: 15)).foregroundStyle(.secondary)
+                            Text("Toronto, ON  M5V 1E3").font(.system(size: 15)).foregroundStyle(.secondary)
                             Text("aidanjeon07@gmail.com").font(.system(size: 15)).foregroundStyle(.secondary)
-                            Text("(236) 668-4714").font(.system(size: 15)).foregroundStyle(.secondary)
+                            Text("(416) 555-0192").font(.system(size: 15)).foregroundStyle(.secondary)
                         }
                     }
 
