@@ -24,11 +24,21 @@ private struct WalmartScanifyFlowView: View {
     let storeBranding: StoreBranding
     var allowedCategory: ProductCategory?
 
+    private let walmartBlue = Color(scanifyHex: "#0071DC")
+    private let walmartYellow = Color(scanifyHex: "#FFC220")
+
+    enum ScanPhase {
+        case scanning, loading, result
+    }
+
     @State private var scannedProduct: ScannedProduct?
+    @State private var pendingProduct: ScannedProduct?
+    @State private var scanPhase: ScanPhase = .scanning
     @State private var showSuccess = false
     @State private var showProductNotFound = false
     @State private var lastUnknownBarcode: String = ""
     @State private var scanHistory: [ScannedProduct] = []
+    @State private var sparkRotation: Double = 0
 
     private var demoProducts: [ScannedProduct] {
         if let cat = allowedCategory {
@@ -41,25 +51,34 @@ private struct WalmartScanifyFlowView: View {
         ZStack {
             if showSuccess {
                 successView.transition(.scale.combined(with: .opacity))
+            } else if scanPhase == .loading {
+                walmartLoadingView
+                    .transition(.opacity)
             } else {
                 cameraScanner
+                    .transition(.opacity)
             }
         }
+        .animation(.easeInOut(duration: 0.4), value: scanPhase)
         .animation(.spring(duration: 0.35), value: showSuccess)
         .sheet(item: $scannedProduct) { product in
             WalmartScanifySheet(
                 product: product,
                 storeBranding: storeBranding,
-                onDismiss: { scannedProduct = nil },
+                onDismiss: {
+                    scannedProduct = nil
+                    scanPhase = .scanning
+                },
                 onOrderComplete: {
                     scannedProduct = nil
+                    scanPhase = .scanning
                     withAnimation(.spring(duration: 0.4)) { showSuccess = true }
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { withAnimation { showSuccess = false } }
                 }
             )
         }
         .alert("Product Not Found", isPresented: $showProductNotFound) {
-            Button("Scan Again", role: .cancel) {}
+            Button("Scan Again", role: .cancel) { scanPhase = .scanning }
         } message: { Text(productNotFoundMessage) }
     }
 
@@ -71,38 +90,110 @@ private struct WalmartScanifyFlowView: View {
         return "Barcode \(lastUnknownBarcode) is not in our demo database. Try one of the sample products."
     }
 
+    // MARK: - Walmart Loading Screen
+
+    private var walmartLoadingView: some View {
+        ZStack {
+            walmartBlue.ignoresSafeArea()
+
+            Image("walmart_spark")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 90, height: 90)
+                .rotationEffect(.degrees(sparkRotation))
+                .onAppear {
+                    sparkRotation = 0
+                    withAnimation(.linear(duration: 1.5).repeatForever(autoreverses: false)) {
+                        sparkRotation = 360
+                    }
+                }
+        }
+    }
+
+    // MARK: - Camera Scanner with Walmart overlay
+
     private var cameraScanner: some View {
         ZStack {
+            // Camera feed
             ScanifyBarcodeScannerView(
                 onBarcodeScanned: { handleBarcode($0) },
-                isActive: scannedProduct == nil && !showSuccess && !showProductNotFound
+                isActive: scanPhase == .scanning && !showProductNotFound
             )
             .ignoresSafeArea()
-            ScannerOverlayView(storeBranding: storeBranding).ignoresSafeArea()
-            VStack {
-                if !scanHistory.isEmpty {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(scanHistory) { product in
-                                Button { scannedProduct = product } label: {
-                                    HStack(spacing: 6) {
-                                        Image(systemName: product.category.icon).font(.system(size: 10)).foregroundStyle(product.category.accentColor)
-                                        Text(product.name).font(.system(size: 11, weight: .medium)).lineLimit(1)
+
+            // Walmart-branded overlay
+            VStack(spacing: 0) {
+                // Top: Walmart branding with white-to-clear gradient
+                VStack(spacing: 12) {
+                    Spacer().frame(height: 110)
+
+                    Image("walmart_full_logo")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(height: 65)
+
+                    Text("Scan a product barcode")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.7))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.bottom, 40)
+                .background(
+                    LinearGradient(
+                        colors: [
+                            Color(scanifyHex: "#1A8CFF"),
+                            Color(scanifyHex: "#1A8CFF"),
+                            Color(scanifyHex: "#1A8CFF").opacity(0.9),
+                            Color(scanifyHex: "#1A8CFF").opacity(0)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .ignoresSafeArea(edges: .top)
+                )
+                .onAppear {
+                    withAnimation(.linear(duration: 3.0).repeatForever(autoreverses: false)) {
+                        sparkRotation = 360
+                    }
+                }
+
+                Spacer()
+
+                // Scan window
+                ZStack {
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(.white.opacity(0.5), lineWidth: 1.5)
+                        .frame(width: 280, height: 160)
+
+                    ScanCorners(color: .white)
+                        .frame(width: 280, height: 160)
+                }
+
+                Spacer()
+
+                // Bottom: demo products + gradient
+                VStack(spacing: 8) {
+                    if !scanHistory.isEmpty {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(scanHistory) { product in
+                                    Button { scannedProduct = product } label: {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: product.category.icon).font(.system(size: 10)).foregroundStyle(product.category.accentColor)
+                                            Text(product.name).font(.system(size: 11, weight: .medium)).lineLimit(1)
+                                        }
+                                        .foregroundStyle(.white)
+                                        .padding(.horizontal, 10).padding(.vertical, 6)
+                                        .background(.white.opacity(0.15), in: .capsule)
+                                        .overlay(Capsule().stroke(.white.opacity(0.2), lineWidth: 1))
                                     }
-                                    .foregroundStyle(.white)
-                                    .padding(.horizontal, 10).padding(.vertical, 6)
-                                    .background(.white.opacity(0.15), in: .capsule)
-                                    .overlay(Capsule().stroke(.white.opacity(0.2), lineWidth: 1))
                                 }
                             }
+                            .padding(.horizontal, 16)
                         }
-                        .padding(.horizontal, 16)
                     }
-                    .padding(.top, 56).transition(.move(edge: .top).combined(with: .opacity))
-                }
-                Spacer()
-                VStack(spacing: 8) {
-                    Text("Demo Products").font(.system(size: 11, weight: .semibold)).foregroundStyle(.white.opacity(0.5))
+
+                    Text("Demo Products").font(.system(size: 11, weight: .semibold)).foregroundStyle(.white.opacity(0.6))
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
                             ForEach(demoProducts) { product in
@@ -120,8 +211,17 @@ private struct WalmartScanifyFlowView: View {
                         .padding(.horizontal, 16)
                     }
                 }
-                .padding(.bottom, 100)
+                .padding(.bottom, 40)
+                .frame(maxWidth: .infinity)
+                .background(
+                    LinearGradient(
+                        colors: [.black.opacity(0), .black.opacity(0.4), .black.opacity(0.7)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
             }
+            .ignoresSafeArea()
         }
     }
 
@@ -137,11 +237,18 @@ private struct WalmartScanifyFlowView: View {
             return
         }
         AudioServicesPlaySystemSound(1057)
-        scannedProduct = product
-        withAnimation(.spring(duration: 0.3)) {
-            scanHistory.removeAll { $0.barcode == product.barcode }
-            scanHistory.insert(product, at: 0)
-            if scanHistory.count > 5 { scanHistory = Array(scanHistory.prefix(5)) }
+
+        // Show loading, then present product
+        pendingProduct = product
+        withAnimation { scanPhase = .loading }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            scannedProduct = pendingProduct
+            withAnimation(.spring(duration: 0.3)) {
+                scanHistory.removeAll { $0.barcode == product.barcode }
+                scanHistory.insert(product, at: 0)
+                if scanHistory.count > 5 { scanHistory = Array(scanHistory.prefix(5)) }
+            }
         }
     }
 
@@ -218,27 +325,93 @@ struct ScanifyNutritionView: View {
     @State private var showFullIngredients = false
     private var containsAllergens: Bool { !data.allergens.isEmpty }
 
+    private let walmartBlue = Color(scanifyHex: "#0071DC")
+    private let walmartDarkBlue = Color(scanifyHex: "#004C91")
+    private let walmartYellow = Color(scanifyHex: "#FFC220")
+
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                VStack(spacing: 6) {
-                    Image(systemName: "carrot.fill")
-                        .font(.system(size: 36)).foregroundStyle(accentColor.opacity(0.6))
-                        .frame(width: 64, height: 64)
-                        .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: 18))
-                    Text(product.brand).font(.system(size: 13, weight: .semibold)).foregroundStyle(.secondary)
-                    Text(product.name).font(.system(size: 20, weight: .bold)).foregroundStyle(.primary).multilineTextAlignment(.center)
-                    Text(String(format: "$%.2f", product.price)).font(.system(size: 15, weight: .semibold)).foregroundStyle(accentColor)
+                // Walmart blue hero with product card
+                VStack(spacing: 0) {
+                    // Product card on top of blue background
+                    VStack(spacing: 10) {
+                        // Walmart spark + Grocery header
+                        HStack {
+                            Image("walmart_spark")
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: 36, height: 36)
+                            Spacer()
+                            Text("Grocery")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(.white.opacity(0.85))
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 20)
+                        .padding(.bottom, 8)
+
+                        // Product card
+                        VStack(spacing: 10) {
+                            if let imageName = product.imageName {
+                                Image(imageName)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 260)
+                                    .shadow(color: .black.opacity(0.12), radius: 8, y: 4)
+                            } else {
+                                Image(systemName: "carrot.fill")
+                                    .font(.system(size: 36))
+                                    .foregroundStyle(accentColor.opacity(0.6))
+                                    .frame(height: 100)
+                            }
+
+                            Text(product.brand.uppercased())
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(.secondary)
+                                .tracking(1.2)
+                            Text(product.name)
+                                .font(.system(size: 20, weight: .bold))
+                                .foregroundStyle(.primary)
+                                .multilineTextAlignment(.center)
+                            Text(String(format: "$%.2f", product.price))
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundStyle(walmartBlue)
+                        }
+                        .padding(.vertical, 16)
+                        .padding(.horizontal, 20)
+                        .frame(maxWidth: .infinity)
+                        .background(
+                            RoundedRectangle(cornerRadius: 20)
+                                .fill(Color(.systemBackground))
+                                .shadow(color: .black.opacity(0.08), radius: 12, y: 6)
+                        )
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 16)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .background(
+                        LinearGradient(
+                            colors: [walmartDarkBlue, walmartBlue],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
                 }
-                .padding(.top, 8)
-                allergenBanner
-                allergenGrid
-                if !data.dietaryFlags.isEmpty { dietaryFlagRow }
-                nutritionSection
-                if let alt = data.alternative, containsAllergens { alternativeSection(alt) }
-                ingredientSection
+
+                // Content sections with horizontal padding
+                Group {
+                    allergenBanner
+                    allergenGrid
+                    if !data.dietaryFlags.isEmpty { dietaryFlagRow }
+                    nutritionSection
+                    if let alt = data.alternative, containsAllergens { alternativeSection(alt) }
+                    ingredientSection
+                }
+                .padding(.horizontal, 20)
             }
-            .padding(.horizontal, 20).padding(.bottom, 24)
+            .padding(.bottom, 24)
         }
         .scrollIndicators(.hidden)
         .navigationTitle("Nutrition & Allergens")
@@ -337,7 +510,18 @@ struct ScanifyNutritionView: View {
                 Image(systemName: "arrow.triangle.swap").font(.system(size: 14)).foregroundStyle(.green)
                 Text("Safer Alternative").font(.system(size: 15, weight: .semibold)).foregroundStyle(.primary)
             }
-            HStack {
+            HStack(spacing: 12) {
+                if let altImage = alt.imageName {
+                    Image(altImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 64, height: 64)
+                } else {
+                    Image(systemName: "leaf.fill")
+                        .font(.system(size: 24))
+                        .foregroundStyle(.green.opacity(0.4))
+                        .frame(width: 64, height: 64)
+                }
                 VStack(alignment: .leading, spacing: 4) {
                     Text(alt.name).font(.system(size: 13, weight: .medium)).foregroundStyle(.primary)
                     Text(alt.reason).font(.system(size: 11)).foregroundStyle(.green)

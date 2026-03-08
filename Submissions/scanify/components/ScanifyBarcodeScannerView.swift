@@ -182,7 +182,7 @@ struct ScannerOverlayView: View {
                     Spacer()
                 }
                 .padding(.horizontal, 20)
-                .padding(.top, 12)
+                .padding(.top, 56)
 
                 Spacer()
 
