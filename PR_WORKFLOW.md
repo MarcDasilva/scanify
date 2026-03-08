@@ -20,6 +20,7 @@ You’ll push to your fork and then open a PR from your fork to the original rep
 Use these commands. **Important:** the destination is the clone path; you can run from any directory.
 
 **1. Go to the clone and create the branch**
+
 ```bash
 cd /Users/marc/reactivapp-clipkit-lab
 git checkout -b submission/scanify
@@ -28,6 +29,7 @@ git checkout -b submission/scanify
 **2. Copy everything from scanify into the clone** (do **not** copy `.git` — the clone keeps its own).
 
 Using **rsync** (recommended — one command, overwrites cleanly):
+
 ```bash
 rsync -a /Users/marc/scanify/ /Users/marc/reactivapp-clipkit-lab/ \
   --exclude='.git' \
@@ -38,6 +40,7 @@ rsync -a /Users/marc/scanify/ /Users/marc/reactivapp-clipkit-lab/ \
 ```
 
 Using **cp** only (run each line; destination is the full path to the clone):
+
 ```bash
 CLONE=/Users/marc/reactivapp-clipkit-lab
 SRC=/Users/marc/scanify
@@ -52,6 +55,7 @@ cp "$SRC/README.md" "$SRC/CLAUDE.md" "$SRC/.gitignore" "$CLONE/"
 ```
 
 **3. Commit and push**
+
 ```bash
 cd /Users/marc/reactivapp-clipkit-lab
 git add -A
@@ -81,11 +85,11 @@ https://github.com/reactivapp/reactivapp-clipkit-lab/compare/main...YOUR_FORK:re
 
 ## Summary
 
-| Step | Action |
-|------|--------|
-| 1 | Fork `reactivapp/reactivapp-clipkit-lab` (if needed). |
-| 2 | Clone your fork, create branch `submission/scanify`, copy this repo in (rsync or cp), then `git add -A` → `git commit -m "Add Scanify submission"` → `git push -u origin submission/scanify`. |
-| 3 | On GitHub, open a PR from your fork’s `submission/scanify` to upstream `main`. |
+| Step | Action                                                                                                                                                                                        |
+| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | Fork `reactivapp/reactivapp-clipkit-lab` (if needed).                                                                                                                                         |
+| 2    | Clone your fork, create branch `submission/scanify`, copy this repo in (rsync or cp), then `git add -A` → `git commit -m "Add Scanify submission"` → `git push -u origin submission/scanify`. |
+| 3    | On GitHub, open a PR from your fork’s `submission/scanify` to upstream `main`.                                                                                                                |
 
 ---
 
