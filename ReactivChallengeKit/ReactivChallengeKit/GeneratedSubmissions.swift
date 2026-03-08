@@ -1372,9 +1372,9 @@ private struct NikeProductPageView: View {
                        let item = data.sizes.first(where: { $0.size == sel }) {
                         HStack(spacing: 6) {
                             Circle()
-                                .fill(item.stockStatus.color)
+                                .fill(item.inStock == 0 ? Color.red : item.stockStatus.color)
                                 .frame(width: 7, height: 7)
-                            Text(item.inStock == 0 ? "Out of stock at this location" : item.inStock <= 3 ? "Only \(item.inStock) left in store" : "\(item.inStock) in stock at this location")
+                            Text(item.inStock == 0 ? "Out of stock here — check nearby stores below" : item.inStock <= 3 ? "Only \(item.inStock) left in store" : "\(item.inStock) in stock at this location")
                                 .font(.system(size: 13, weight: .medium))
                                 .foregroundStyle(item.inStock == 0 ? Color.red : item.inStock <= 3 ? Color.orange : Color(white: 0.35))
                         }
@@ -1391,7 +1391,7 @@ private struct NikeProductPageView: View {
                             .background(Color.black, in: RoundedRectangle(cornerRadius: 12))
                     }
                     .buttonStyle(.plain)
-                    .disabled(selectedSize == nil)
+                    .disabled(selectedSize == nil || (apparelData?.sizes.first(where: { $0.size == selectedSize })?.inStock ?? 1) == 0)
 
                     Button(action: onToggleFavorite) {
                         HStack {
@@ -1527,7 +1527,7 @@ private struct NikeProductPageView: View {
             VStack(spacing: 2) {
                 Text(size)
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(inStock ? (selected ? Color.white : Color.black) : Color(white: 0.65))
+                    .foregroundStyle(selected ? (inStock ? Color.white : Color.black) : (inStock ? Color.black : Color(white: 0.5)))
                 if inStock {
                     Text(stockCount <= 3 ? "Low" : "\(stockCount) left")
                         .font(.system(size: 10, weight: .medium))
@@ -1535,20 +1535,19 @@ private struct NikeProductPageView: View {
                 } else {
                     Text("Out")
                         .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(Color(white: 0.6))
+                        .foregroundStyle(selected ? Color(white: 0.5) : Color(white: 0.6))
                 }
             }
         }
-        .disabled(!inStock)
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
         .background(
-            inStock && selected ? Color.black : Color.white,
+            selected ? (inStock ? Color.black : Color.white) : Color.white,
             in: RoundedRectangle(cornerRadius: 8)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 8)
-                .stroke(Color.black.opacity(0.2), lineWidth: 1)
+                .stroke(selected && !inStock ? Color.black.opacity(0.4) : Color.black.opacity(0.2), lineWidth: selected && !inStock ? 1.5 : 1)
         )
         .buttonStyle(.plain)
     }
@@ -1628,9 +1627,17 @@ private struct NikeProductPageView: View {
                 .foregroundStyle(.black)
             VStack(spacing: 0) {
                 ForEach(Array(Self.nearbyStores.enumerated()), id: \.offset) { index, store in
-                    let available = selectedSize.map { sz in
+                    // If out of stock at this store, nearby stores carry it; otherwise nearby stores match
+                    let inStockHere = selectedSize.map { sz in
                         (data.sizes.first(where: { $0.size == sz })?.inStock ?? 0) > 0
                     } ?? true
+                    let nearbyAvailable = !inStockHere || inStockHere  // nearby always available when out here; show stock otherwise
+                    let _ = nearbyAvailable  // suppress warning
+                    let statusText: String = {
+                        guard let sz = selectedSize else { return "In stock" }
+                        if !inStockHere { return "Size \(sz) available" }
+                        return "Size \(sz) available"
+                    }()
                     HStack(spacing: 12) {
                         Image(systemName: "storefront")
                             .font(.system(size: 14))
@@ -1640,9 +1647,9 @@ private struct NikeProductPageView: View {
                             Text(store.name)
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundStyle(.black)
-                            Text(available ? (selectedSize.map { "Size \($0) available" } ?? "In stock") : "Selected size unavailable")
+                            Text(statusText)
                                 .font(.system(size: 12, weight: .medium))
-                                .foregroundStyle(available ? Color.green : Color.red)
+                                .foregroundStyle(Color.green)
                         }
                         Spacer()
                         Text(store.distance)
@@ -4795,8 +4802,8 @@ enum ScanifyMockData {
                 ColorVariant(name: "Navy", hex: "#1A3A5C"),
                 ColorVariant(name: "White", hex: "#F5F5F5"),
             ],
-            fit: "Regular Fit",
-            material: "100% Recycled Polyester"
+            fit: "True to Size",
+            material: "Breathable Mesh"
         ))
     )
 
@@ -4824,8 +4831,8 @@ enum ScanifyMockData {
                 ColorVariant(name: "Black", hex: "#1C1C1E"),
                 ColorVariant(name: "Navy", hex: "#1A3A5C"),
             ],
-            fit: "Regular Fit",
-            material: "100% Recycled Polyester"
+            fit: "True to Size",
+            material: "Synthetic Leather"
         ))
     )
 

@@ -371,8 +371,8 @@ enum ScanifyMockData {
                 ColorVariant(name: "Navy", hex: "#1A3A5C"),
                 ColorVariant(name: "White", hex: "#F5F5F5"),
             ],
-            fit: "Regular Fit",
-            material: "100% Recycled Polyester"
+            fit: "True to Size",
+            material: "Breathable Mesh"
         ))
     )
 
@@ -400,8 +400,8 @@ enum ScanifyMockData {
                 ColorVariant(name: "Black", hex: "#1C1C1E"),
                 ColorVariant(name: "Navy", hex: "#1A3A5C"),
             ],
-            fit: "Regular Fit",
-            material: "100% Recycled Polyester"
+            fit: "True to Size",
+            material: "Synthetic Leather"
         ))
     )
 
