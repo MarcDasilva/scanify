@@ -328,13 +328,17 @@ enum ScanifyMockData {
     private static let products: [String: ScannedProduct] = [
         // Word-based barcode keys (for printed demo barcodes)
         "Sephora": cosmeticsProduct,
-        "Nike": apparelProduct,
+        "Nike": nikeShoeProduct,
+        "P6000": nikeShoeProduct,
+        "Nike P-6000": nikeShoeProduct,
+        "Tee": apparelProduct,
         "Walmart": foodProduct,
         "Shoppers": pharmacyProduct,
         "Best Buy": electronicsProduct,
 
         // Numeric barcode keys
-        "4901234567890": apparelProduct,
+        "4901234567890": nikeShoeProduct,
+        "4901234567891": apparelProduct,
         "0012345678905": foodProduct,
         "7891234567890": pharmacyProduct,
         "3456789012345": cosmeticsProduct,
@@ -344,7 +348,7 @@ enum ScanifyMockData {
     // MARK: - Product Definitions
 
     private static let apparelProduct = ScannedProduct(
-        barcode: "Nike",
+        barcode: "Tee",
         name: "Dri-FIT Running Tee",
         brand: "Nike",
         category: .apparel,
@@ -358,6 +362,39 @@ enum ScanifyMockData {
                 SizeInventory(size: "L", inStock: 2),
                 SizeInventory(size: "XL", inStock: 12),
                 SizeInventory(size: "XXL", inStock: 6),
+            ],
+            colors: [
+                ColorVariant(name: "Black", hex: "#1C1C1E"),
+                ColorVariant(name: "Navy", hex: "#1A3A5C"),
+                ColorVariant(name: "White", hex: "#F5F5F5"),
+            ],
+            fit: "Regular Fit",
+            material: "100% Recycled Polyester"
+        ))
+    )
+
+    /// Nike P-6000 shoe for store checkout / Nike-style PDP
+    private static let nikeShoeProduct = ScannedProduct(
+        barcode: "P6000",
+        name: "Nike P-6000",
+        brand: "Nike",
+        category: .apparel,
+        price: 104.95,
+        currency: "GBP",
+        categoryData: .apparel(ApparelData(
+            sizes: [
+                SizeInventory(size: "US 7", inStock: 3),
+                SizeInventory(size: "US 7.5", inStock: 2),
+                SizeInventory(size: "US 8", inStock: 0),
+                SizeInventory(size: "US 8.5", inStock: 5),
+                SizeInventory(size: "US 9", inStock: 4),
+                SizeInventory(size: "US 9.5", inStock: 1),
+                SizeInventory(size: "US 10", inStock: 0),
+                SizeInventory(size: "US 10.5", inStock: 0),
+                SizeInventory(size: "US 11", inStock: 6),
+                SizeInventory(size: "US 11.5", inStock: 2),
+                SizeInventory(size: "US 12", inStock: 0),
+                SizeInventory(size: "US 13", inStock: 2),
             ],
             colors: [
                 ColorVariant(name: "Black", hex: "#1C1C1E"),

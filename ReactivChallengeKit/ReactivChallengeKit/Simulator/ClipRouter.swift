@@ -11,6 +11,7 @@ import UIKit
 final class ClipRouter {
 
     static let builtInExperiences: [any ClipExperience.Type] = [
+        StoreCheckoutExperience.self,
         VenueMerchExperience.self,
         TrailCheckInExperience.self,
     ]
