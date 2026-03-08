@@ -1,5 +1,6 @@
 import SwiftUI
 import AudioToolbox
+import UserNotifications
 
 struct NikeScanifyClipExperience: ClipExperience {
     static let urlPattern = "scanify.app/nike/scan"
@@ -222,6 +223,38 @@ private struct NikeScannerOverlay: View {
     }
 }
 
+// MARK: - Notification window pill (shown in scanner while 8h window is active)
+
+private struct NikeNotificationWindowPill: View {
+    let startDate: Date
+
+    private var remaining: TimeInterval {
+        max(0, 8 * 3600 - Date().timeIntervalSince(startDate))
+    }
+
+    private var formattedRemaining: String {
+        let h = Int(remaining) / 3600
+        let m = (Int(remaining) % 3600) / 60
+        if h > 0 { return "\(h)h \(m)m" }
+        return "\(m)m"
+    }
+
+    var body: some View {
+        TimelineView(.periodic(from: startDate, by: 60)) { _ in
+            HStack(spacing: 6) {
+                Image(systemName: "bell.fill")
+                    .font(.system(size: 10, weight: .semibold))
+                Text("8h push window active · \(formattedRemaining) left")
+                    .font(.system(size: 11, weight: .medium))
+            }
+            .foregroundStyle(.orange)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .glassEffect(.regular.interactive(), in: .capsule)
+        }
+    }
+}
+
 // MARK: - Shared nav tab
 
 private enum NikeTab { case shop, favorites, bag, profile }
@@ -317,6 +350,8 @@ private struct NikeScanifyFlowView: View {
     @State private var showNikeLoading = false
     @State private var lastUnknownBarcode: String = ""
     @State private var scanHistory: [ScannedProduct] = []
+    @State private var notificationWindowStart: Date?
+    @State private var notificationScheduled = false
 
     private var demoProducts: [ScannedProduct] {
         ScanifyMockData.products(for: storeBranding.storeId)
@@ -485,7 +520,13 @@ private struct NikeScanifyFlowView: View {
 
                 Spacer().frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                VStack(spacing: 8) {
+                VStack(spacing: 12) {
+                    // 8-hour notification window indicator
+                    if notificationScheduled, let start = notificationWindowStart {
+                        NikeNotificationWindowPill(startDate: start)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
+
                     Text("Demo Products")
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(.white.opacity(0.5))
@@ -505,6 +546,22 @@ private struct NikeScanifyFlowView: View {
                                     .padding(.vertical, 8)
                                     .glassEffect(.regular.interactive(), in: .capsule)
                                 }
+                            }
+                            // Demo: fire notification in 8 seconds
+                            Button {
+                                scheduleCartReminderNotification(demoDelay: 8)
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Image(systemName: notificationScheduled ? "bell.fill" : "bell")
+                                        .font(.system(size: 11))
+                                    Text(notificationScheduled ? "Notif scheduled" : "Demo 8h notif")
+                                        .font(.system(size: 11, weight: .medium))
+                                        .lineLimit(1)
+                                }
+                                .foregroundStyle(notificationScheduled ? .orange : .white)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .glassEffect(.regular.interactive(), in: .capsule)
                             }
                         }
                         .padding(.horizontal, 16)
@@ -550,6 +607,10 @@ private struct NikeScanifyFlowView: View {
         scanHistory.removeAll { $0.barcode == product.barcode }
         scanHistory.insert(product, at: 0)
         if scanHistory.count > 5 { scanHistory = Array(scanHistory.prefix(5)) }
+        // Schedule the real 8-hour notification on first scan (App Clip ephemeral window)
+        if !notificationScheduled {
+            scheduleCartReminderNotification(demoDelay: 28800)
+        }
         showNikeSplash = true
         let productToShow = product
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.48) {
@@ -564,6 +625,33 @@ private struct NikeScanifyFlowView: View {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
                     withAnimation(.spring(duration: 0.75, bounce: 0.18)) {
                         scannedProduct = productToShow
+                    }
+                }
+            }
+        }
+    }
+
+    /// Schedule an App Clip cart-reminder notification.
+    /// - `demoDelay`: seconds until fire (use 8 for demo, 28800 for real 8h window)
+    private func scheduleCartReminderNotification(demoDelay: TimeInterval = 28800) {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
+            guard granted else { return }
+            let content = UNMutableNotificationContent()
+            content.title = "Your Nike cart is waiting 👟"
+            content.body = "Items in your bag may sell out. Tap to complete your order before your session expires."
+            content.sound = .default
+            content.badge = 1
+
+            // Cancel any previous reminder first
+            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["nike-cart-reminder"])
+
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: demoDelay, repeats: false)
+            let request = UNNotificationRequest(identifier: "nike-cart-reminder", content: content, trigger: trigger)
+            UNUserNotificationCenter.current().add(request) { _ in
+                DispatchQueue.main.async {
+                    withAnimation {
+                        notificationScheduled = true
+                        notificationWindowStart = notificationWindowStart ?? Date()
                     }
                 }
             }
