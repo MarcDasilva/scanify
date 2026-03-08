@@ -723,12 +723,12 @@ private enum BRCakeBuilder {
         return scene
     }
 
-    /// Loads the cake from bundle: tries cake.glb (parsed) then cake.usdz.
+    /// Loads the cake from bundle: tries cake.glb (parsed) then cake.usdz. Only from Submissions/scanify (public or Resources).
     private static func loadCakeFromBundle() -> SCNNode? {
         let bundle = Bundle.main
 
-        // 1) GLB from Resources (Submissions/scanify/public/cake.glb copied to bundle)
-        if let glbURL = bundle.url(forResource: "cake", withExtension: "glb", subdirectory: "Resources")
+        // 1) GLB from Submissions/scanify/public (canonical location)
+        if let glbURL = bundle.url(forResource: "cake", withExtension: "glb", subdirectory: "Submissions/scanify/public")
             ?? bundle.url(forResource: "cake", withExtension: "glb") {
             if let node = BRGLBLoader.load(url: glbURL) {
                 scaleAndCenterCake(node)
@@ -736,8 +736,8 @@ private enum BRCakeBuilder {
             }
         }
 
-        // 2) USDZ if converted (e.g. Reality Converter: cake.glb → cake.usdz)
-        if let usdzURL = bundle.url(forResource: "cake", withExtension: "usdz", subdirectory: "Resources")
+        // 2) USDZ if present under scanify
+        if let usdzURL = bundle.url(forResource: "cake", withExtension: "usdz", subdirectory: "Submissions/scanify/public")
             ?? bundle.url(forResource: "cake", withExtension: "usdz") {
             if let node = loadUSDZ(url: usdzURL) { return node }
         }

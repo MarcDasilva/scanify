@@ -69,6 +69,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				7409D7EB2F525C060097EC9A /* ReactivChallengeKit */,
+				74AB00012F525C060097EC9A /* ../Submissions */,
 			);
 			name = ReactivChallengeKit;
 			packageProductDependencies = (
