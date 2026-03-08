@@ -96,7 +96,7 @@ private struct SephoraScanifyFlowView: View {
                 Image("sephora_logo")
                     .resizable()
                     .scaledToFit()
-                    .frame(height: 88)
+                    .frame(height: 130)
                     .padding(.top, 44)
                     .padding(.bottom, 16)
                     .frame(maxWidth: .infinity)
@@ -264,7 +264,16 @@ private struct SephoraScanifySheet: View {
     }
 }
 
-// MARK: - Sephora category view (cosmetics: virtual try-on)
+// MARK: - Sephora category view (cosmetics: product page + try-on)
+
+/// Maps shade name to asset name for tint image (berry, rosewood, Satin).
+private func tintImageName(for shade: Shade) -> String? {
+    let n = shade.name.lowercased()
+    if n.contains("berry") { return "berry" }
+    if n.contains("rosewood") { return "rosewood" }
+    if n.contains("satin") { return "Satin" }
+    return nil
+}
 
 struct ScanifyCosmeticsView: View {
     let product: ScannedProduct
@@ -272,6 +281,7 @@ struct ScanifyCosmeticsView: View {
     let onBuyNow: (String) -> Void
 
     @State private var selectedShade: Shade?
+    @State private var showTryOn = false
     @State private var showCamera = true
 
     private var currentShade: Shade {
@@ -291,21 +301,267 @@ struct ScanifyCosmeticsView: View {
     }
 
     var body: some View {
+        Group {
+            if showTryOn {
+                tryOnView
+            } else {
+                productPageView
+            }
+        }
+        .navigationTitle(showTryOn ? "Virtual Try-On" : "")
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            showCamera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front) != nil
+        }
+    }
+
+    // MARK: - Sephora-style product page
+
+    private var productPageView: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                sephoraHeader
+                breadcrumbs
+                productTitleBlock
+                productImageSection
+                priceBlock
+                colorAndSpecBlock
+                shadePicker
+                addToBasketButton
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.bottom, 24)
+        }
+        .scrollIndicators(.hidden)
+        .background(Color(.systemGroupedBackground))
+    }
+
+    private var sephoraHeader: some View {
+        HStack(spacing: 12) {
+            Text("SEPHORA")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(.primary)
+            Spacer()
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(.secondary)
+            Image(systemName: "heart")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(.secondary)
+            Image(systemName: "bag")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+        .background(Color(.systemBackground))
+    }
+
+    private var breadcrumbs: some View {
+        Text("Makeup > Lip > Lipstick")
+            .font(.system(size: 12, weight: .regular))
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 20)
+            .padding(.bottom, 12)
+    }
+
+    private var productTitleBlock: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(product.brand.uppercased())
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.secondary)
+            Text(product.name)
+                .font(.system(size: 20, weight: .bold))
+                .foregroundStyle(.primary)
+            HStack(spacing: 6) {
+                HStack(spacing: 2) {
+                    ForEach(0..<5, id: \.self) { _ in
+                        Image(systemName: "star.fill")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.yellow)
+                    }
+                }
+                Text("1.6K")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.secondary)
+                Text("Ask a question")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.blue)
+                Spacer()
+                Image(systemName: "heart")
+                    .font(.system(size: 14))
+                    .foregroundStyle(.secondary)
+                Text("1.7M")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.bottom, 16)
+        .background(Color(.systemBackground))
+    }
+
+    /// Single image for the selected shade (tint from assets or color placeholder).
+    private var productImageSection: some View {
+        ZStack {
+            // Full-width, full-height background (edge to edge, no gap to next section)
+            Image("sephora_wallpaper", bundle: .main)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(minWidth: 0, maxWidth: .infinity)
+                .frame(height: 260)
+                .clipped()
+
+            // Lipstick image on top with larger rounded corners
+            Group {
+                if let name = tintImageName(for: currentShade) {
+                    Image(name, bundle: .main)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                } else {
+                    Image(systemName: "paintbrush.pointed.fill")
+                        .font(.system(size: 44))
+                        .foregroundStyle(Color(scanifyHex: currentShade.hex).opacity(0.5))
+                        .frame(height: 180)
+                }
+            }
+            .frame(minWidth: 0, maxWidth: .infinity)
+            .frame(maxHeight: 260)
+            .clipShape(RoundedRectangle(cornerRadius: 28))
+            .padding(.horizontal, 20)
+        }
+    }
+
+    private var priceBlock: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .center, spacing: 12) {
+                Text(String(format: "$%.2f", product.price))
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundStyle(.primary)
+                Spacer()
+                Button {
+                    showTryOn = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "camera.fill")
+                            .font(.system(size: 10, weight: .semibold))
+                        Text("Try It On")
+                            .font(.system(size: 11, weight: .bold))
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 7)
+                    .background(Color(red: 0.85, green: 0.15, blue: 0.2))
+                    .clipShape(Capsule())
+                }
+            }
+            Text("or 4 payments of $\(String(format: "%.2f", product.price / 4)) with Klarna or Afterpay")
+                .font(.system(size: 12, weight: .regular))
+                .foregroundStyle(.secondary)
+            Text("Get It For $\(String(format: "%.2f", product.price * 0.95)) (5% Off) With Auto-Replenish")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+        .background(Color(.systemBackground))
+    }
+
+    private var colorAndSpecBlock: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Color:")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.secondary)
+                Text("\(currentShade.name) – matte")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.primary)
+            }
+            HStack {
+                Text("Size")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.secondary)
+                Text(data.volume)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.primary)
+            }
+            Text("Matte finish – Standard size")
+                .font(.system(size: 13, weight: .regular))
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+        .background(Color(.systemBackground))
+    }
+
+    private var shadePicker: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Tap a shade")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(.primary)
+                .padding(.horizontal, 20)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(data.shades) { shade in
+                        Button {
+                            withAnimation(.spring(duration: 0.25)) { selectedShade = shade }
+                        } label: {
+                            VStack(spacing: 6) {
+                                Circle()
+                                    .fill(Color(scanifyHex: shade.hex))
+                                    .frame(width: 44, height: 44)
+                                    .shadow(color: Color(scanifyHex: shade.hex).opacity(0.4), radius: 4)
+                                    .overlay(
+                                        Circle()
+                                            .stroke(currentShade.id == shade.id ? Color.primary : .clear, lineWidth: 2)
+                                            .padding(-3)
+                                    )
+                                Text(shade.name)
+                                    .font(.system(size: 10, weight: .medium))
+                                    .foregroundStyle(currentShade.id == shade.id ? .primary : .secondary)
+                                    .lineLimit(1)
+                            }
+                            .frame(width: 60)
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
+            }
+            .scrollClipDisabled(true)
+        }
+        .padding(.vertical, 16)
+        .background(Color(.systemBackground))
+    }
+
+    private var addToBasketButton: some View {
+        Button {
+            onBuyNow(currentShade.name)
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "bag.fill")
+                Text("Add to Basket")
+                    .font(.system(size: 17, weight: .semibold))
+            }
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(Color(red: 0.85, green: 0.15, blue: 0.2))
+            .cornerRadius(12)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 8)
+        .background(Color(.systemBackground))
+    }
+
+    // MARK: - Try-on camera view
+
+    private var tryOnView: some View {
         ScrollView {
             VStack(spacing: 16) {
-                VStack(spacing: 4) {
-                    Text(product.brand)
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                    Text(product.name)
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(.primary)
-                    Text(String(format: "$%.2f", product.price))
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(.pink)
-                }
-                .padding(.top, 4)
-
                 ZStack {
                     if showCamera {
                         ScanifyFaceCameraView(shadeColor: shadeUIColor)
@@ -337,21 +593,7 @@ struct ScanifyCosmeticsView: View {
                     }
 
                     VStack {
-                        HStack {
-                            Spacer()
-                            HStack(spacing: 5) {
-                                Circle()
-                                    .fill(.red)
-                                    .frame(width: 6, height: 6)
-                                Text("LIVE")
-                                    .font(.system(size: 10, weight: .bold))
-                                    .foregroundStyle(.white)
-                            }
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(.black.opacity(0.5), in: .capsule)
-                            .padding(12)
-                        }
+                        Spacer()
                         Spacer()
                     }
 
@@ -376,53 +618,25 @@ struct ScanifyCosmeticsView: View {
                 shadePicker
                 detailsSection
 
-                ClipActionButton(title: "Buy Now — \(currentShade.name)", icon: "bag.fill") {
-                    onBuyNow(currentShade.name)
+                Button {
+                    showTryOn = false
+                } label: {
+                    Text("Back to Product")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(.secondary)
                 }
+                .padding(.top, 8)
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 24)
         }
         .scrollIndicators(.hidden)
-        .navigationTitle("Virtual Try-On")
-        .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
-            showCamera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front) != nil
-        }
-    }
-
-    private var shadePicker: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Tap a shade to try it on")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(.primary)
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(data.shades) { shade in
-                        Button {
-                            withAnimation(.spring(duration: 0.25)) { selectedShade = shade }
-                        } label: {
-                            VStack(spacing: 6) {
-                                Circle()
-                                    .fill(Color(scanifyHex: shade.hex))
-                                    .frame(width: 44, height: 44)
-                                    .shadow(color: Color(scanifyHex: shade.hex).opacity(0.4), radius: 4)
-                                    .overlay(
-                                        Circle()
-                                            .stroke(currentShade.id == shade.id ? Color.primary : .clear, lineWidth: 2)
-                                            .padding(-3)
-                                    )
-                                Text(shade.name)
-                                    .font(.system(size: 10, weight: .medium))
-                                    .foregroundStyle(currentShade.id == shade.id ? .primary : .secondary)
-                                    .lineLimit(1)
-                            }
-                            .frame(width: 60)
-                        }
-                    }
+        .background(Color(.systemGroupedBackground))
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Done") {
+                    showTryOn = false
                 }
-                .padding(.horizontal, 4)
             }
         }
     }
