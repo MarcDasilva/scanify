@@ -452,11 +452,11 @@ enum ScanifyMockData {
         currency: "CAD",
         categoryData: .cosmetics(CosmeticsData(
             shades: [
-                Shade(name: "999 Satin", hex: "#C41E3A"),
                 Shade(name: "Rosewood", hex: "#9E4244"),
+                Shade(name: "Berry", hex: "#8B2252"),
+                Shade(name: "999 Satin", hex: "#C41E3A"),
                 Shade(name: "Nude Look", hex: "#C08081"),
                 Shade(name: "Coral", hex: "#E8737A"),
-                Shade(name: "Berry", hex: "#8B2252"),
                 Shade(name: "Plum", hex: "#6B3A4E"),
             ],
             skinTypes: ["All skin types"],

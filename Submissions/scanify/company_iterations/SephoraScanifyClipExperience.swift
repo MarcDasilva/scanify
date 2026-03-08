@@ -2,6 +2,8 @@ import SwiftUI
 import AudioToolbox
 import AVFoundation
 import Vision
+import ARKit
+import SceneKit
 
 struct SephoraScanifyClipExperience: ClipExperience {
     static let urlPattern = "scanify.app/sephora/scan"
@@ -459,21 +461,266 @@ struct ScanifyCosmeticsView: View {
 }
 
 // MARK: - Face camera for virtual try-on (Sephora)
+// Uses ARKit face tracking when available (Snapchat-style mesh-accurate overlay);
+// falls back to Vision-based overlay on simulator or devices without face tracking.
 
 struct ScanifyFaceCameraView: UIViewControllerRepresentable {
     let shadeColor: UIColor
 
-    func makeUIViewController(context: Context) -> FaceCameraViewController {
-        let vc = FaceCameraViewController()
-        vc.shadeColor = shadeColor
-        return vc
+    func makeUIViewController(context: Context) -> UIViewController {
+        if ARFaceTrackingConfiguration.isSupported {
+            let vc = ARFaceLipOverlayViewController()
+            vc.shadeColor = shadeColor
+            return vc
+        } else {
+            let vc = FaceCameraViewController()
+            vc.shadeColor = shadeColor
+            return vc
+        }
     }
 
-    func updateUIViewController(_ uiViewController: FaceCameraViewController, context: Context) {
-        uiViewController.shadeColor = shadeColor
-        uiViewController.updateOverlayColor()
+    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {
+        if let ar = uiViewController as? ARFaceLipOverlayViewController {
+            ar.shadeColor = shadeColor
+            ar.updateLipColor()
+        } else if let vision = uiViewController as? FaceCameraViewController {
+            vision.shadeColor = shadeColor
+            vision.updateOverlayColor()
+        }
     }
 }
+
+// MARK: - ARKit face tracking + lip overlay (Snapchat-style)
+// Renders only the lip region of the 3D face mesh with the selected shade;
+// mesh follows face exactly via ARFaceTrackingConfiguration.
+
+final class ARFaceLipOverlayViewController: UIViewController, ARSCNViewDelegate {
+    var shadeColor: UIColor = .red
+
+    private var sceneView: ARSCNView!
+    private var lipNode: SCNNode?
+    /// Triangle indices into the face mesh that form the lip region (computed once).
+    private var lipTriangleIndices: [Int32] = []
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = .black
+        sceneView = ARSCNView(frame: view.bounds)
+        sceneView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        sceneView.delegate = self
+        sceneView.session.delegate = self
+        sceneView.antialiasingMode = .multisampling4X
+        view.addSubview(sceneView)
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        let config = ARFaceTrackingConfiguration()
+        config.isWorldTrackingEnabled = false
+        sceneView.session.run(config, options: [.resetTracking, .removeExistingAnchors])
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        sceneView.session.pause()
+    }
+
+    func updateLipColor() {
+        lipNode?.geometry?.firstMaterial?.diffuse.contents = shadeColor
+        lipNode?.geometry?.firstMaterial?.emission.contents = shadeColor.withAlphaComponent(0.15)
+    }
+
+    /// Best-practice lip mapping: lips are the *protruding* part of the mouth (highest Z in face space).
+    /// We select a loose mouth region (Y,X), then keep only vertices in the *front* of that region (top Z percentile).
+    /// This excludes skin around lips (philtrum, chin, perioral) and keeps only the lip surface.
+    private func lipTriangleIndices(from geometry: ARFaceGeometry, useFallback: Bool = false) -> [Int32] {
+        var vertexCount = 0
+        geometry.vertices.withUnsafeBufferPointer { vBuf in
+            vertexCount = vBuf.count
+        }
+        guard vertexCount > 0 else { return [] }
+
+        // Step 1: Mouth region in Y,X only. Tighter on top (no skin above upper lip); wider horizontally (full lip width to corners).
+        func inMouthRegion(_ p: SIMD3<Float>) -> Bool {
+            let x = p.x, y = p.y
+            if useFallback {
+                return y > -0.068 && y < -0.022 && x > -0.080 && x < 0.080
+            }
+            // Upper Y -0.032: trim a bit more above upper lip. X ±0.080: wide enough to reach full lip corners.
+            return y > -0.058 && y < -0.032 && x > -0.080 && x < 0.080
+        }
+
+        var mouthZValues: [Float] = []
+        geometry.vertices.withUnsafeBufferPointer { vBuf in
+            for i in 0..<vertexCount {
+                if inMouthRegion(vBuf[i]) {
+                    mouthZValues.append(vBuf[i].z)
+                }
+            }
+        }
+        guard mouthZValues.count >= 3 else {
+            return lipTriangleIndicesBoxOnly(from: geometry, useFallback: useFallback)
+        }
+
+        // Step 2: Lips = front of mouth. Use 62nd percentile so only the actual lip surface (not skin above).
+        mouthZValues.sort(by: <)
+        let percentileIndex = Int(Float(mouthZValues.count) * 0.62)
+        let zThreshold = mouthZValues[Swift.min(percentileIndex, mouthZValues.count - 1)]
+
+        var lipVertexMask = [Bool](repeating: false, count: vertexCount)
+        geometry.vertices.withUnsafeBufferPointer { vBuf in
+            for i in 0..<vertexCount {
+                lipVertexMask[i] = inMouthRegion(vBuf[i]) && vBuf[i].z >= zThreshold
+            }
+        }
+
+        var indices: [Int32] = []
+        geometry.triangleIndices.withUnsafeBufferPointer { tBuf in
+            let triCount = tBuf.count / 3
+            for t in 0..<triCount {
+                let i0 = Int(tBuf[t * 3 + 0])
+                let i1 = Int(tBuf[t * 3 + 1])
+                let i2 = Int(tBuf[t * 3 + 2])
+                guard i0 < vertexCount, i1 < vertexCount, i2 < vertexCount else { continue }
+                if lipVertexMask[i0], lipVertexMask[i1], lipVertexMask[i2] {
+                    indices.append(Int32(tBuf[t * 3 + 0]))
+                    indices.append(Int32(tBuf[t * 3 + 1]))
+                    indices.append(Int32(tBuf[t * 3 + 2]))
+                }
+            }
+        }
+        if indices.isEmpty {
+            return lipTriangleIndicesBoxOnly(from: geometry, useFallback: useFallback)
+        }
+        return indices
+    }
+
+    /// Fallback when Z-percentile yields no triangles: use simple 3D box (may include area around lips).
+    private func lipTriangleIndicesBoxOnly(from geometry: ARFaceGeometry, useFallback: Bool) -> [Int32] {
+        var vertexCount = 0
+        geometry.vertices.withUnsafeBufferPointer { vBuf in
+            vertexCount = vBuf.count
+        }
+        guard vertexCount > 0 else { return [] }
+        func inBox(_ p: SIMD3<Float>) -> Bool {
+            let x = p.x, y = p.y, z = p.z
+            if useFallback {
+                return y > -0.068 && y < -0.022 && x > -0.080 && x < 0.080 && z > -0.04 && z < 0.055
+            }
+            // Match primary: less upper lip (y < -0.032), wider sides (x ±0.080).
+            return y > -0.058 && y < -0.032 && x > -0.080 && x < 0.080 && z > -0.02 && z < 0.05
+        }
+        var lipVertexMask = [Bool](repeating: false, count: vertexCount)
+        geometry.vertices.withUnsafeBufferPointer { vBuf in
+            for i in 0..<vertexCount {
+                lipVertexMask[i] = inBox(vBuf[i])
+            }
+        }
+        var indices: [Int32] = []
+        geometry.triangleIndices.withUnsafeBufferPointer { tBuf in
+            let triCount = tBuf.count / 3
+            for t in 0..<triCount {
+                let i0 = Int(tBuf[t * 3 + 0])
+                let i1 = Int(tBuf[t * 3 + 1])
+                let i2 = Int(tBuf[t * 3 + 2])
+                guard i0 < vertexCount, i1 < vertexCount, i2 < vertexCount else { continue }
+                if lipVertexMask[i0], lipVertexMask[i1], lipVertexMask[i2] {
+                    indices.append(Int32(tBuf[t * 3 + 0]))
+                    indices.append(Int32(tBuf[t * 3 + 1]))
+                    indices.append(Int32(tBuf[t * 3 + 2]))
+                }
+            }
+        }
+        return indices
+    }
+
+    private func makeLipGeometry(from faceGeometry: ARFaceGeometry) -> SCNGeometry? {
+        var vertexCount = 0
+        faceGeometry.vertices.withUnsafeBufferPointer { buf in
+            vertexCount = buf.count
+        }
+        guard vertexCount > 0 else { return nil }
+
+        var triIndices: [Int32]
+        if lipTriangleIndices.isEmpty {
+            let primary = lipTriangleIndices(from: faceGeometry, useFallback: false)
+            if !primary.isEmpty {
+                lipTriangleIndices = primary
+                triIndices = primary
+            } else {
+                let fallback = lipTriangleIndices(from: faceGeometry, useFallback: true)
+                lipTriangleIndices = fallback
+                triIndices = fallback
+            }
+        } else {
+            triIndices = lipTriangleIndices
+        }
+        if triIndices.isEmpty { return nil }
+
+        var vertexData = [Float](repeating: 0, count: vertexCount * 3)
+        faceGeometry.vertices.withUnsafeBufferPointer { buf in
+            for i in 0..<vertexCount {
+                vertexData[i * 3 + 0] = buf[i].x
+                vertexData[i * 3 + 1] = buf[i].y
+                vertexData[i * 3 + 2] = buf[i].z
+            }
+        }
+        let vertexSource = SCNGeometrySource(
+            data: Data(bytes: vertexData, count: vertexData.count * MemoryLayout<Float>.size),
+            semantic: .vertex,
+            vectorCount: vertexCount,
+            usesFloatComponents: true,
+            componentsPerVector: 3,
+            bytesPerComponent: MemoryLayout<Float>.size,
+            dataOffset: 0,
+            dataStride: MemoryLayout<Float>.size * 3
+        )
+        var indexData = triIndices
+        let element = SCNGeometryElement(
+            data: Data(bytes: &indexData, count: indexData.count * MemoryLayout<Int32>.size),
+            primitiveType: .triangles,
+            primitiveCount: indexData.count / 3,
+            bytesPerIndex: MemoryLayout<Int32>.size
+        )
+        let geometry = SCNGeometry(sources: [vertexSource], elements: [element])
+        let mat = SCNMaterial()
+        mat.diffuse.contents = shadeColor
+        mat.emission.contents = shadeColor.withAlphaComponent(0.12)
+        mat.transparency = 0.72
+        mat.isDoubleSided = true
+        mat.fillMode = .fill
+        geometry.materials = [mat]
+        return geometry
+    }
+}
+
+extension ARFaceLipOverlayViewController: ARSessionDelegate {}
+
+extension ARFaceLipOverlayViewController {
+    func renderer(_ renderer: SCNSceneRenderer, nodeFor anchor: ARAnchor) -> SCNNode? {
+        guard anchor is ARFaceAnchor else { return nil }
+        let container = SCNNode()
+        // Mirror the overlay so it matches the front camera's mirrored preview (selfie view).
+        container.scale = SCNVector3(-1, 1, 1)
+        lipNode = SCNNode()
+        container.addChildNode(lipNode!)
+        return container
+    }
+
+    func renderer(_ renderer: SCNSceneRenderer, didUpdate node: SCNNode, for anchor: ARAnchor) {
+        guard let faceAnchor = anchor as? ARFaceAnchor,
+              let lip = lipNode else { return }
+        let geometry = faceAnchor.geometry
+        if lipTriangleIndices.isEmpty {
+            lipTriangleIndices = lipTriangleIndices(from: geometry)
+        }
+        guard !lipTriangleIndices.isEmpty,
+              let lipGeometry = makeLipGeometry(from: geometry) else { return }
+        lip.geometry = lipGeometry
+    }
+}
+
+// MARK: - Vision-based fallback (simulator / no face tracking)
 
 final class FaceCameraViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDelegate {
     var shadeColor: UIColor = .red
@@ -535,6 +782,9 @@ final class FaceCameraViewController: UIViewController, AVCaptureVideoDataOutput
         let preview = AVCaptureVideoPreviewLayer(session: captureSession)
         preview.videoGravity = .resizeAspectFill
         preview.frame = view.bounds
+        if let previewConnection = preview.connection, previewConnection.isVideoRotationAngleSupported(90) {
+            previewConnection.videoRotationAngle = 90
+        }
         view.layer.addSublayer(preview)
         self.previewLayer = preview
     }
@@ -549,6 +799,10 @@ final class FaceCameraViewController: UIViewController, AVCaptureVideoDataOutput
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
 
+        let imageWidth = CVPixelBufferGetWidth(pixelBuffer)
+        let imageHeight = CVPixelBufferGetHeight(pixelBuffer)
+        let imageSize = CGSize(width: imageWidth, height: imageHeight)
+
         let request = VNDetectFaceLandmarksRequest { [weak self] request, _ in
             guard let self,
                   let results = request.results as? [VNFaceObservation],
@@ -562,47 +816,57 @@ final class FaceCameraViewController: UIViewController, AVCaptureVideoDataOutput
             let innerLips = landmarks.innerLips
 
             DispatchQueue.main.async {
-                self.drawLipOverlay(face: face, outerLips: outerLips, innerLips: innerLips)
+                self.drawLipOverlay(face: face, outerLips: outerLips, innerLips: innerLips, imageSize: imageSize)
             }
         }
 
         try? sequenceHandler.perform([request], on: pixelBuffer, orientation: .leftMirrored)
     }
 
-    private func drawLipOverlay(face: VNFaceObservation, outerLips: VNFaceLandmarkRegion2D?, innerLips: VNFaceLandmarkRegion2D?) {
+    /// Draws lip overlay by mapping Vision face landmarks exactly to the preview layer.
+    /// Vision uses image coordinates with origin bottom-left; AVCaptureVideoPreviewLayer
+    /// expects normalized (0–1) capture device coordinates with origin top-left.
+    private func drawLipOverlay(face: VNFaceObservation, outerLips: VNFaceLandmarkRegion2D?, innerLips: VNFaceLandmarkRegion2D?, imageSize: CGSize) {
         guard let outerLips, let previewLayer else {
             overlayLayer.path = nil
             return
         }
 
-        let boundingBox = face.boundingBox
-        let outerPoints = outerLips.pointsInImage(imageSize: CGSize(width: 1, height: 1))
+        let w = imageSize.width
+        let h = imageSize.height
+        guard w > 0, h > 0 else {
+            overlayLayer.path = nil
+            return
+        }
+
+        // Landmarks in image pixel space (Vision: origin bottom-left, y up).
+        let outerPoints = outerLips.pointsInImage(imageSize: imageSize)
 
         let path = CGMutablePath()
 
-        func convert(_ point: CGPoint) -> CGPoint {
-            let x = boundingBox.origin.x + point.x * boundingBox.width
-            let y = boundingBox.origin.y + point.y * boundingBox.height
-            let viewPoint = previewLayer.layerPointConverted(fromCaptureDevicePoint: CGPoint(x: x, y: y))
-            return viewPoint
+        // Convert Vision image point (bottom-left origin) → normalized capture device (0–1, top-left) → layer point.
+        func imageToLayer(_ point: CGPoint) -> CGPoint {
+            let normX = point.x / w
+            let normY = 1.0 - (point.y / h)
+            return previewLayer.layerPointConverted(fromCaptureDevicePoint: CGPoint(x: normX, y: normY))
         }
 
         if !outerPoints.isEmpty {
-            let first = convert(outerPoints[0])
+            let first = imageToLayer(outerPoints[0])
             path.move(to: first)
             for i in 1..<outerPoints.count {
-                path.addLine(to: convert(outerPoints[i]))
+                path.addLine(to: imageToLayer(outerPoints[i]))
             }
             path.closeSubpath()
         }
 
         if let innerLips {
-            let innerPoints = innerLips.pointsInImage(imageSize: CGSize(width: 1, height: 1))
+            let innerPoints = innerLips.pointsInImage(imageSize: imageSize)
             if !innerPoints.isEmpty {
-                let first = convert(innerPoints[0])
+                let first = imageToLayer(innerPoints[0])
                 path.move(to: first)
                 for i in 1..<innerPoints.count {
-                    path.addLine(to: convert(innerPoints[i]))
+                    path.addLine(to: imageToLayer(innerPoints[i]))
                 }
                 path.closeSubpath()
             }
