@@ -984,7 +984,6 @@ private struct NikeScanifyFlowView: View {
     @State private var showNikeLoading = false
     @State private var lastUnknownBarcode: String = ""
     @State private var scanHistory: [ScannedProduct] = []
-    @Namespace private var heroNamespace
 
     private var demoProducts: [ScannedProduct] {
         ScanifyMockData.products(for: storeBranding.storeId)
@@ -1050,7 +1049,6 @@ private struct NikeScanifyFlowView: View {
                 NikeProductPageView(
                     product: product,
                     storeBranding: storeBranding,
-                    heroNamespace: heroNamespace,
                     onBack: { withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) { scannedProduct = nil } },
                     onAddToBag: { item in
                         bagItems.append(item)
@@ -1133,26 +1131,10 @@ private struct NikeScanifyFlowView: View {
                 }
                 .padding(.bottom, 100)
 
-                if let product = scannedProduct, case .apparel = product.categoryData {
-                    Group {
-                        if product.name.contains("P-6000") {
-                            Image("NIKEP-6000")
-                                .resizable()
-                                .scaledToFit()
-                        } else {
-                            Image(systemName: "tshirt.fill")
-                                .font(.system(size: 36))
-                                .foregroundStyle(Color.black.opacity(0.35))
-                        }
-                    }
-                    .frame(width: 120, height: 120)
-                    .background(Color(.secondarySystemFill), in: RoundedRectangle(cornerRadius: 16))
-                    .matchedGeometryEffect(id: "product-hero-\(product.id)", in: heroNamespace)
-                }
             }
             .zIndex(0)
         }
-        .animation(.spring(response: 0.5, dampingFraction: 0.82), value: scannedProduct?.id)
+        .animation(.spring(response: 0.75, dampingFraction: 0.85), value: scannedProduct?.id)
         .animation(.spring(response: 0.45, dampingFraction: 0.82), value: showBag)
         .animation(.spring(response: 0.45, dampingFraction: 0.82), value: showCheckout)
         .animation(.easeOut(duration: 0.22), value: showNikeSplash)
@@ -1199,7 +1181,7 @@ private struct NikeScanifyFlowView: View {
                     showNikeLoading = false
                 }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
-                    withAnimation(.spring(duration: 0.5, bounce: 0.3)) {
+                    withAnimation(.spring(duration: 0.75, bounce: 0.18)) {
                         scannedProduct = productToShow
                     }
                 }
@@ -1221,7 +1203,6 @@ private struct NikeScanifyFlowView: View {
 private struct NikeProductPageView: View {
     let product: ScannedProduct
     let storeBranding: StoreBranding
-    var heroNamespace: Namespace.ID
     let onBack: () -> Void
     let onAddToBag: (NikeBagItem) -> Void
 
@@ -1364,7 +1345,6 @@ private struct NikeProductPageView: View {
                     )
                     .frame(height: 380)
                     .frame(maxWidth: .infinity)
-                    .matchedGeometryEffect(id: "product-hero-\(product.id)", in: heroNamespace)
             } else {
                 TabView(selection: $heroPage) {
                     ForEach(Array(heroImages.enumerated()), id: \.offset) { index, name in
@@ -1380,7 +1360,6 @@ private struct NikeProductPageView: View {
                 .frame(height: 380)
                 .frame(maxWidth: .infinity)
                 .background(Color(white: 0.96))
-                .matchedGeometryEffect(id: "product-hero-\(product.id)", in: heroNamespace)
             }
 
             HStack(spacing: 6) {
