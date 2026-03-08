@@ -16,14 +16,7 @@ final class ClipRouter {
     ]
 
     static var allExperiences: [any ClipExperience.Type] {
-        builtInExperiences + [
-            BaskinRobbinsScanifyClipExperience.self,
-            BestBuyScanifyClipExperience.self,
-            NikeScanifyClipExperience.self,
-            SephoraScanifyClipExperience.self,
-            ShoppersDrugMartScanifyClipExperience.self,
-            WalmartScanifyClipExperience.self,
-        ]
+        builtInExperiences + SubmissionRegistry.all
     }
 
     struct MatchResult: Identifiable {
