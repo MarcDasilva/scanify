@@ -31,7 +31,7 @@ struct ConstraintBanner: View {
             Spacer()
 
             Button {
-                openURL(URL(string: "itms-apps://itunes.apple.com/app/id387649656")!)
+                openURL(URL(string: "https://apps.apple.com/app/id387649656")!)
             } label: {
                 Text("GET")
                     .font(.system(size: 13, weight: .bold))
