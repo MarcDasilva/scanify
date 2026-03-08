@@ -1,9 +1,5 @@
 ## Team Name: Scanify
-<<<<<<< HEAD
 ## Clip Name: ScanifyClipExperience
-=======
-## Clip Name: ScanifyExperience
->>>>>>> feature/scanify-implementation
 ## Invocation URL Pattern: example.com/scanify/:param
 
 ---

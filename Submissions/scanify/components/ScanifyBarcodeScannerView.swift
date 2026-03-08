@@ -115,39 +115,45 @@ struct ScannerOverlayView: View {
 
     var body: some View {
         ZStack {
-            // Dimmed edges
-            Color.black.opacity(0.4)
-                .ignoresSafeArea()
+            // Dimmed edges with clear cutout (self-contained compositing group)
+            ZStack {
+                Color.black.opacity(0.4)
+                    .ignoresSafeArea()
 
-            // Clear cutout in center
+                VStack {
+                    Spacer()
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(.white)
+                        .frame(width: 300, height: 180)
+                    Spacer()
+                }
+                .blendMode(.destinationOut)
+            }
+            .compositingGroup()
+            .ignoresSafeArea()
+
+            // Scan window border, corners, and line (outside compositing — renders with true colors)
             VStack {
                 Spacer()
 
                 ZStack {
-                    // Scan window
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(.clear)
-                        .frame(width: 280, height: 280)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 20)
-                                .stroke(storeBranding.accentColor.opacity(0.6), lineWidth: 2)
-                        )
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(.white.opacity(0.4), lineWidth: 1.5)
+                        .frame(width: 300, height: 180)
 
-                    // Corner brackets
-                    ScanCorners(color: storeBranding.accentColor)
-                        .frame(width: 280, height: 280)
+                    ScanCorners(color: .white)
+                        .frame(width: 300, height: 180)
 
-                    // Scan line
                     RoundedRectangle(cornerRadius: 1)
                         .fill(
                             LinearGradient(
-                                colors: [.clear, storeBranding.accentColor, .clear],
+                                colors: [.clear, .blue, .clear],
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )
                         )
-                        .frame(width: 240, height: 2)
-                        .offset(y: animateScanLine ? 120 : -120)
+                        .frame(width: 260, height: 2)
+                        .offset(y: animateScanLine ? 70 : -70)
                         .animation(
                             .easeInOut(duration: 2.0).repeatForever(autoreverses: true),
                             value: animateScanLine
@@ -156,8 +162,6 @@ struct ScannerOverlayView: View {
 
                 Spacer()
             }
-            .compositingGroup()
-            .blendMode(.destinationOut)
 
             // Top bar
             VStack {
@@ -202,8 +206,8 @@ struct ScannerOverlayView: View {
 
 struct ScanCorners: View {
     let color: Color
-    private let length: CGFloat = 30
-    private let lineWidth: CGFloat = 3
+    private let length: CGFloat = 35
+    private let lineWidth: CGFloat = 5
 
     var body: some View {
         GeometryReader { geo in
